@@ -505,6 +505,14 @@
   .house .st { font-size: 13px; color: var(--ink-soft); }
   .house .btn { margin-top: 4px; }
 
+  /* 마을 지도 */
+  .village-wrap { border: 3px solid var(--line); border-radius: 22px; overflow: hidden; background: #BFE3A8; }
+  .village { display: block; width: 100%; height: auto; }
+  .village .hs { cursor: pointer; outline: none; }
+  .village .hs .hb { transition: transform .15s; }
+  .village .hs:hover .hb, .village .hs:focus-visible .hb { transform: translateY(-5px); }
+  .village .hs:focus-visible > rect { stroke: var(--accent-dark); stroke-width: 3; }
+
   /* 놀러 간 집 */
   .visit-bar {
     display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -2836,6 +2844,85 @@
     showLobby();
   }
 
+  // ---- 마을 그림: 길가에 집이 세 채씩 줄지어 서 있어요 ----
+  const ROOF = ['#7FB3D5', '#F5B041', '#82C99A', '#B39DDB', '#F08A5D', '#5DADE2', '#E59866', '#76D7C4'];
+  const roofOf = id => ROOF[[...id].reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 7) % ROOF.length];
+  function villageSvg(list) {
+    const now = new Date(), tod = q.get('time') || timeOfDay(now.getHours()), today = ymd(now);
+    const dark = tod === 'night' || tod === 'evening';
+    const W = 600, TOP = 130, ROW = 168, PER = 3;
+    const rows = Math.max(1, Math.ceil((list.length + 1) / PER)); // 빈 집터가 한 칸은 보이게
+    const H = TOP + rows * ROW + 10;
+    const baseY = r => TOP + r * ROW + 112;
+    let roads = '', houses = '', trees = '';
+    for (let r = 0; r < rows; r++) {
+      const y = baseY(r);
+      roads += `<rect x="30" y="${y}" width="540" height="20" rx="10" fill="#F3E2C7"/>
+        <line x1="50" y1="${y + 10}" x2="550" y2="${y + 10}" stroke="#fff" stroke-width="2" stroke-dasharray="10 10"/>`;
+      if (r < rows - 1) roads += `<rect x="${r % 2 ? 30 : 550}" y="${y}" width="20" height="${ROW + 20}" rx="10" fill="#F3E2C7"/>`;
+      [200, 400].forEach(x => {
+        trees += `<rect x="${x - 3}" y="${y - 34}" width="6" height="22" fill="#A0785A"/>
+          <circle cx="${x}" cy="${y - 44}" r="16" fill="${tod === 'night' ? '#4E8A5E' : '#6DBE6A'}"/>
+          <circle cx="${x - 9}" cy="${y - 36}" r="10" fill="${tod === 'night' ? '#447A52' : '#5DAE5B'}"/>`;
+      });
+    }
+    for (let i = 0; i < rows * PER; i++) {
+      const p = list[i], r = Math.floor(i / PER), cx = 100 + (i % PER) * 200, y = baseY(r);
+      if (!p) {
+        const lot = tod === 'night' ? '#DCEFD0' : '#6E8B5E';
+        houses += `<g transform="translate(${cx} ${y})" opacity=".8">
+          <rect x="-44" y="-64" width="88" height="62" rx="6" fill="none" stroke="${tod === 'night' ? '#DCEFD0' : '#A6C98F'}" stroke-width="2.5" stroke-dasharray="7 6"/>
+          <text y="-26" text-anchor="middle" font-size="15" fill="${lot}" font-weight="700">빈 집터</text>
+          <text y="44" text-anchor="middle" font-size="13" fill="${lot}">이사 올 자리</text></g>`;
+        continue;
+      }
+      const mine = p.user_id === ME.id;
+      const pub = mine ? readPublic({ public_data: publicData(HOME) }) : readPublic(p);
+      const busy = pub.busy.filter(b => b.d === today).length;
+      const win = dark ? '#FFE07A' : '#BFE3F5';
+      const label = homeOf(p.name);
+      const say = `${label}${mine ? ' (내 집)' : ''} · Lv.${pub.lv}${busy ? ` · 오늘 일정 ${busy}개 있음` : ''}${pub.trip ? ' · ' + tripText(pub.trip) : ''}`;
+      houses += `
+        <g class="hs" transform="translate(${cx} ${y})" role="button" tabindex="0" aria-label="${esc(say)}"
+           onclick="visitHouse('${p.user_id}')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); visitHouse('${p.user_id}'); }">
+          <title>${esc(say)}</title>
+          <ellipse cx="0" cy="2" rx="54" ry="7" fill="#000" opacity=".08"/>
+          <g class="hb">
+            <rect x="-44" y="-64" width="88" height="64" rx="4" fill="#FFF8EE" stroke="#E8D5C0" stroke-width="2"/>
+            <rect x="22" y="-104" width="12" height="26" fill="#C9A27E"/>
+            <polygon points="-56,-60 0,-106 56,-60" fill="${mine ? '#EE8FA6' : roofOf(p.user_id)}" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+            <rect x="-34" y="-50" width="18" height="16" rx="2" fill="${win}" stroke="#E8D5C0"/>
+            <rect x="16" y="-50" width="18" height="16" rx="2" fill="${win}" stroke="#E8D5C0"/>
+            <rect x="-11" y="-32" width="22" height="32" rx="3" fill="#C98B5E"/>
+            <circle cx="6" cy="-16" r="2" fill="#FFE07A"/>
+            <text x="28" y="-9" text-anchor="middle" font-size="11" font-weight="800" fill="#9A7C72">Lv.${pub.lv}</text>
+            ${mine ? `<text x="0" y="-114" text-anchor="middle" font-size="16">💗</text>` : ''}
+            ${pub.trip ? `<text x="50" y="-82" font-size="18" text-anchor="middle">✈️</text>` : ''}
+            ${busy ? `<g transform="translate(-46 -90)"><circle r="12" fill="#E0607E" stroke="#fff" stroke-width="2"/><text y="4.5" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${busy}</text></g>` : ''}
+          </g>
+          <rect x="-62" y="26" width="124" height="26" rx="13" fill="${mine ? '#EE8FA6' : '#fff'}" stroke="${mine ? '#fff' : '#E2C9C0'}" stroke-width="2"/>
+          <text y="44" text-anchor="middle" font-size="15" font-weight="800" fill="${mine ? '#fff' : '#5A4038'}">${esc(label.length > 8 ? label.slice(0, 7) + '…' : label)}</text>
+        </g>`;
+    }
+    const sun = tod === 'night'
+      ? `<circle cx="520" cy="50" r="22" fill="#F6E7B0"/><circle cx="530" cy="44" r="20" fill="${SKY.night[0]}"/>`
+        + [[60, 30], [140, 60], [250, 25], [360, 55], [440, 20]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2" fill="#fff"/>`).join('')
+      : `<circle cx="520" cy="52" r="24" fill="${tod === 'day' ? '#FFD95A' : '#FF9A5A'}"/>`;
+    return `<svg class="village" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(HOOD_NAME)} 마을 지도">
+      <defs><linearGradient id="vSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${SKY[tod][0]}"/><stop offset="1" stop-color="${SKY[tod][1]}"/></linearGradient></defs>
+      <rect width="${W}" height="${TOP + 20}" fill="url(#vSky)"/>
+      ${sun}
+      <ellipse cx="120" cy="${TOP + 10}" rx="170" ry="50" fill="${tod === 'night' ? '#5E8F62' : '#9AD38A'}"/>
+      <ellipse cx="460" cy="${TOP + 14}" rx="210" ry="56" fill="${tod === 'night' ? '#557F5A' : '#8CC97C'}"/>
+      <rect y="${TOP}" width="${W}" height="${H - TOP}" fill="${tod === 'night' ? '#6E9A6A' : '#BFE3A8'}"/>
+      ${roads}${trees}
+      <g transform="translate(40 ${TOP - 48})"><rect x="-2" y="0" width="6" height="40" fill="#A0785A"/>
+        <rect x="-30" y="-24" width="${Math.min(150, 26 + HOOD_NAME.length * 15)}" height="26" rx="5" fill="#FFF8EE" stroke="#C9A27E" stroke-width="2"/>
+        <text x="-20" y="-6" font-size="14" font-weight="800" fill="#7A5A46">🪧 ${esc(HOOD_NAME)}</text></g>
+      ${houses}
+    </svg>`;
+  }
+
   async function goLobby() { await flushSave(); showLobby(); }
   async function showLobby() {
     showGate(`<div class="gate-box wide"><h1>🏘️ ${esc(HOOD_NAME)}</h1><div class="sub">집들을 불러오는 중…</div></div>`);
@@ -2862,6 +2949,9 @@
         <div><h1>🏘️ ${esc(HOOD_NAME)}</h1><div class="sub" style="margin:0">${esc(MY_PROFILE.name)}님, 어서 와요! 이웃집에서는 일정 '있음' · 여행 중만 보이고 업무 · 가계부는 잠겨 있어요.</div></div>
         <button class="btn" type="button" onclick="logout()">🚪 나가기</button>
       </div>
+      <div class="village-wrap">${villageSvg(LOBBY)}</div>
+      <div class="memo" style="margin:8px 0 16px">집을 누르면 놀러 가요. 💗 분홍 지붕이 내 집 · 빨간 숫자는 오늘 일정 수 · ✈️는 여행 중이에요.</div>
+      <h3 style="margin:0 0 10px">🏠 이웃 목록</h3>
       <div class="houses">${cards}</div>
       ${LOBBY.length < 2 ? `<div class="memo" style="margin-top:14px">아직 이웃이 없어요. 친구에게 이 링크와 동네 코드를 알려 주면 이사 올 수 있어요.</div>` : ''}
       ${!hasRecords(HOME) ? `<div class="memo" style="margin-top:8px">💡 예전 푸딩이네 기록이 있다면, 내 집에 들어가서 ⚙️ → 백업 파일 가져오기로 옮길 수 있어요.</div>` : ''}

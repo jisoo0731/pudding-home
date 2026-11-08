@@ -1,0 +1,2915 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>나만의 집</title>
+<link rel="icon" type="image/png" href="pudding.png">
+<style>
+  :root {
+    --bg: #FFF1F1;
+    --ink: #5A4038;
+    --ink-soft: #9A7C72;
+    --card: #FFFBF8;
+    --line: #F4D6DA;
+    --accent: #F9B8C6;
+    --accent-dark: #EE8FA6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  }
+  .app { max-width: 960px; margin: 0 auto; padding: 16px; }
+
+  /* 맨 위 상태바 */
+  .hud {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); border: 2px solid var(--line);
+    border-radius: 18px; padding: 10px 16px; margin-bottom: 12px;
+  }
+  .hud { position: relative; }
+  .hud .lv-btn {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: none;
+    padding: 0; margin: 0; font: inherit; color: inherit; text-align: left; cursor: pointer;
+  }
+  .hud .lv-btn:hover { background: none; }
+  .hud .lv-btn:hover .lv { color: var(--accent-dark); }
+  .lv { font-weight: 800; font-size: 18px; white-space: nowrap; }
+  .xp { flex: 1; min-width: 80px; display: block; }
+  .xp-bar { display: block; height: 12px; background: #FBE4E7; border-radius: 99px; overflow: hidden; }
+  .xp-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); border-radius: 99px; transition: width .5s; }
+  .xp-text { display: block; font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+  /* +10 XP 떠오르기 */
+  .xp-pop {
+    position: absolute; left: 50%; top: 100%; transform: translate(-50%, 0); z-index: 30; pointer-events: none;
+    background: var(--accent-dark); color: #fff; font-weight: 800; font-size: 14px; border-radius: 99px; padding: 4px 12px; opacity: 0;
+  }
+  .xp-pop.minus { background: #A99A93; }
+  .xp-pop.show { animation: xpPop 1.3s ease-out; }
+  @keyframes xpPop {
+    0% { opacity: 0; transform: translate(-50%, 6px) scale(.8); }
+    15% { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
+    70% { opacity: 1; transform: translate(-50%, -6px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -16px); }
+  }
+  /* 레벨 업 축하 */
+  .levelup {
+    position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center;
+    background: rgba(255, 241, 241, .55); cursor: pointer;
+  }
+  .levelup.show { display: flex; }
+  .lu-card {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff;
+    border: 4px solid var(--accent-dark); border-radius: 8px; padding: 22px 36px; animation: luPop .5s ease-out;
+    box-shadow: 0 12px 40px rgba(224, 96, 126, .35);
+  }
+  .lu-star { font-size: 44px; animation: luSpin 1s ease-out; }
+  .lu-card b { font-size: 26px; color: var(--accent-dark); }
+  .lu-card span { font-size: 18px; font-weight: 800; }
+  .lu-card small { color: var(--ink-soft); }
+  @keyframes luPop { 0% { transform: scale(.5); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes luSpin { from { transform: rotate(-30deg) scale(.6); } to { transform: rotate(0) scale(1); } }
+  /* 가구 상점 */
+  .chime { animation: swing 3s ease-in-out infinite; transform-box: fill-box; transform-origin: top center; }
+  @keyframes swing { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+  .flame { animation: flicker 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom center; }
+  @keyframes flicker { 0%, 100% { transform: scale(1, 1); } 40% { transform: scale(.85, 1.12); } 70% { transform: scale(1.08, .92); } }
+  .steam { animation: steam 2.4s ease-in-out infinite; }
+  @keyframes steam { 0%, 100% { opacity: .2; transform: translateY(2px); } 50% { opacity: .9; transform: translateY(-2px); } }
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-top: 12px; }
+  .shop-card {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+    background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 14px 12px;
+  }
+  .shop-card .sc-emoji { font-size: 40px; line-height: 1.1; }
+  .shop-card b { font-size: 16px; }
+  .shop-card .memo { min-height: 34px; }
+  .shop-card .sc-price { font-size: 13px; font-weight: 800; color: var(--accent-dark); margin: 2px 0 6px; }
+  .shop-card.owned { background: #F3FBF4; border-color: #B9DFC1; }
+  .shop-card.owned .sc-price { color: #4E8A62; }
+  .shop-card.locked { opacity: .55; }
+  .shop-card .btn { width: 100%; }
+  .shop-card .btn:disabled { cursor: default; color: var(--ink-soft); background: #F7F1EE; }
+  .xp-have { color: var(--accent-dark) !important; }
+
+  /* XP 받는 법 */
+  .xp-rules .row b { color: var(--accent-dark); }
+  .hud button {
+    border: 2px solid var(--line); background: #fff; border-radius: 12px;
+    padding: 7px 12px; font: inherit; font-size: 14px; cursor: pointer; color: var(--ink);
+  }
+  .hud button:hover { background: #FFE8EC; }
+
+  /* 거실 */
+  .room-wrap { position: relative; border-radius: 24px; overflow: hidden; border: 3px solid var(--line); }
+  svg.room { display: block; width: 100%; height: auto; }
+  .hot { cursor: pointer; transition: filter .15s, transform .15s; transform-box: fill-box; transform-origin: center; }
+  .hot:hover { filter: drop-shadow(0 0 8px #FFC2D1) brightness(1.05); }
+  .tag { font-size: 15px; font-weight: 800; fill: var(--ink); pointer-events: none; }
+  .pudding { animation: bob 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom center; }
+  @keyframes bob { 0%,100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-4px) scaleY(1.02); } }
+  .snow circle { animation: fall linear infinite; }
+  @keyframes fall { from { transform: translateY(-20px); } to { transform: translateY(150px); } }
+  .bulb { animation: twinkle 1.6s ease-in-out infinite; }
+  @keyframes twinkle { 50% { opacity: .35; } }
+
+  /* 오늘 카드 */
+  .today {
+    margin-top: 12px; background: var(--card); border: 2px solid var(--line);
+    border-radius: 18px; padding: 14px 16px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  }
+  .today .item { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; cursor: pointer; }
+  .today .item:hover { background: #FFEFF2; }
+  .today .k { font-size: 13px; color: var(--ink-soft); }
+  .today .v { font-size: 16px; font-weight: 800; margin-top: 2px; }
+  @media (max-width: 640px) { .today { grid-template-columns: repeat(2, 1fr); } }
+
+  /* 오늘판 */
+  .board {
+    margin-top: 12px; background: var(--card); border: 2px solid var(--line); border-radius: 18px; padding: 14px 16px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .board .col { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; min-width: 0; }
+  .board h4 { margin: 0 0 6px; font-size: 14px; display: flex; justify-content: space-between; }
+  .board h4 .n { color: var(--ink-soft); font-weight: 700; }
+  .board .row { display: flex; gap: 8px; align-items: baseline; padding: 4px 6px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .board .row:hover { background: #FFEFF2; }
+  .board .row .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .board .row .tag { font-size: 12px; font-weight: 800; white-space: nowrap; color: var(--ink-soft); }
+  .board .row .tag.late { color: #C0392B; }
+  .board .row .tag.soon { color: #D9822B; }
+  .board .none, .board .more { font-size: 13px; color: var(--ink-soft); padding: 4px 6px; }
+  @media (max-width: 640px) { .board { grid-template-columns: 1fr; } }
+
+  /* 공간(방) 창 */
+  .panel-bg {
+    position: fixed; inset: 0; background: rgba(90,64,56,.3);
+    display: none; align-items: center; justify-content: center; padding: 16px;
+  }
+  .panel-bg.open { display: flex; }
+  .panel {
+    width: 100%; max-width: 720px; max-height: 90vh; padding: 20px 20px 32px;
+    background: var(--card); border-radius: 22px; border: 3px solid var(--line);
+    /* 아래에 내용이 더 있다는 걸 알 수 있게 스크롤바를 늘 보여 줘요 */
+    overflow-y: scroll;
+  }
+  .panel::-webkit-scrollbar { width: 16px; }
+  .panel::-webkit-scrollbar-track { background: #F6D5DC; border-left: 1px solid #E8B9C3; }
+  .panel::-webkit-scrollbar-thumb { background: #D9708A; border: 3px solid #F6D5DC; border-radius: 8px; min-height: 48px; }
+  .panel::-webkit-scrollbar-thumb:hover { background: #C25670; }
+  /* 창이 열려 있을 땐 뒤의 거실은 스크롤되지 않게 (스크롤바가 창 하나에만 있도록) */
+  body.modal-open { overflow: hidden; }
+  .more-hint {
+    position: fixed; transform: translateX(-50%); z-index: 5; display: none;
+    border: 2px solid #D9708A; background: #fff; color: #C25670; border-radius: 99px;
+    padding: 5px 14px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(90,64,56,.18);
+  }
+  .more-hint:hover { background: #FFE8EC; }
+  /* 방 창 · 확인 창: 각진 모서리 + 또렷한 테두리 */
+  .panel.square, .dlg-bg .dlg { --line: #E2B4BD; border-radius: 6px; }
+  .panel.square *, .dlg-bg .dlg * { border-radius: 3px !important; }
+  .panel.square .hp-bar { border-radius: 4px !important; }
+  .panel h2 { margin: 0 0 4px; font-size: 22px; }
+  .panel .sub { color: var(--ink-soft); font-size: 14px; margin-bottom: 14px; }
+  .panel .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .panel .close { float: right; border: 0; background: #FBE4E7; border-radius: 10px; padding: 6px 12px; font: inherit; cursor: pointer; }
+  .soon { margin-top: 14px; font-size: 13px; color: var(--ink-soft); }
+
+  /* 공통 버튼 · 입력칸 */
+  .btn {
+    border: 2px solid var(--line); background: #fff; border-radius: 12px;
+    padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; color: var(--ink);
+  }
+  .btn:hover { background: #FFE8EC; }
+  .btn.primary { background: var(--accent); border-color: var(--accent-dark); font-weight: 800; }
+  .icon-btn { border: 0; background: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 8px; }
+  .icon-btn:hover { background: #FFE8EC; }
+  .form { display: grid; grid-template-columns: 120px 1fr; gap: 8px; margin-top: 10px; }
+  .form input {
+    border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px;
+    font: inherit; font-size: 14px; background: #fff; color: var(--ink); min-width: 0;
+  }
+  .form input:focus { outline: none; border-color: var(--accent-dark); }
+  .form .full { grid-column: 1 / -1; }
+  .form .actions { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+  .empty { color: var(--ink-soft); font-size: 14px; padding: 10px 0; }
+  .sec { margin-top: 18px; }
+  .sec h3 { font-size: 16px; margin: 0 0 6px; }
+
+  /* 달력 */
+  .cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 10px; }
+  .cal-head b { font-size: 18px; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal .dow { text-align: center; font-size: 12px; color: var(--ink-soft); padding: 4px 0; }
+  .cal .sun, .cal .sun .n { color: #E0607E; }
+  .cal .sat, .cal .sat .n { color: #6D8DB0; }
+  .cal .day {
+    min-height: 66px; background: #fff; border: 2px solid #F7E6E8; border-radius: 12px;
+    padding: 4px 5px; cursor: pointer; overflow: hidden; min-width: 0;
+  }
+  .cal .day:hover { background: #FFF3F5; }
+  .cal .day.other { opacity: .4; }
+  .cal .day.sel { border-color: var(--accent-dark); background: #FFF3F5; }
+  .cal .day .n { font-size: 13px; font-weight: 700; display: inline-block; }
+  .cal .day.is-today .n { background: var(--accent-dark); color: #fff; border-radius: 99px; padding: 0 7px; }
+  .chip {
+    display: block; font-size: 11px; background: #FDE3E8; color: var(--ink); border-radius: 6px;
+    padding: 1px 4px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .more { font-size: 11px; color: var(--ink-soft); }
+  .ev { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+  .ev .t { font-weight: 800; min-width: 52px; color: var(--accent-dark); font-size: 14px; }
+  .ev .body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .ev .memo { font-size: 12px; color: var(--ink-soft); }
+  .dday { font-size: 12px; background: #FDE3E8; border-radius: 99px; padding: 2px 8px; white-space: nowrap; }
+  @media (max-width: 640px) {
+    .cal .day { min-height: 46px; }
+    .chip { font-size: 0; height: 6px; padding: 0; }
+    .form { grid-template-columns: 1fr; }
+  }
+
+  /* 업무 */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 10px; }
+  .tab {
+    border: 2px solid var(--line); background: #fff; border-radius: 99px; padding: 5px 12px;
+    font: inherit; font-size: 13px; cursor: pointer; color: var(--ink); max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .tab:hover { background: #FFE8EC; }
+  .tab.on { background: var(--accent); border-color: var(--accent-dark); font-weight: 800; }
+  .tab.add { border-style: dashed; color: var(--ink-soft); }
+  .work-form { grid-template-columns: 1fr 1fr auto; }
+  .form select {
+    border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit;
+    font-size: 14px; background: #fff; color: var(--ink); min-width: 0;
+  }
+  .form .check { display: flex; align-items: center; gap: 6px; font-size: 14px; white-space: nowrap; cursor: pointer; }
+  .form .check input { width: 18px; height: 18px; accent-color: #E0607E; }
+  .task { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+  .task > input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent-dark); flex: none; cursor: pointer; }
+  .task .body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .task.done .title { text-decoration: line-through; color: var(--ink-soft); }
+  .meta { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+  .badge { font-size: 11px; border-radius: 99px; padding: 1px 8px; background: #F5EDE8; color: var(--ink-soft); white-space: nowrap; }
+  .badge.urgent { background: #FDE0E4; color: #D04A5E; font-weight: 700; }
+  .badge.late { background: #E0607E; color: #fff; font-weight: 700; }
+  .badge.soon { background: #FFE3C2; color: #B5651D; font-weight: 700; }
+  .badge.proj { background: #E3F1E7; color: #4E8A62; }
+  .task .title { font-size: 15px; }
+  .task .detail {
+    font-size: 13px; color: var(--ink-soft); white-space: pre-wrap; line-height: 1.5; margin-top: 2px; cursor: pointer;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .task .detail.open { display: block; background: #FFF7F2; border-radius: 8px; padding: 6px 8px; }
+  .work-form textarea {
+    border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px;
+    line-height: 1.5; background: #fff; color: var(--ink); resize: vertical; min-width: 0;
+  }
+  .work-form textarea:focus { outline: none; border-color: var(--accent-dark); }
+  .due {
+    flex: none; min-width: 92px; text-align: center; border-radius: 12px; padding: 5px 10px;
+    background: #F5EDE8; color: var(--ink); line-height: 1.3;
+  }
+  .due b { display: block; font-size: 15px; }
+  .due span { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .due.soon { background: #FFE3C2; }
+  .due.soon span { color: #B5651D; }
+  .due.late { background: #E0607E; color: #fff; }
+  .due.late span { color: #fff; }
+  .due.none { background: none; border: 2px dashed var(--line); padding: 8px 10px; }
+  .due.done { background: none; opacity: .7; }
+  details summary { cursor: pointer; color: var(--ink-soft); font-size: 14px; margin-top: 10px; }
+  .note {
+    width: 100%; min-height: 120px; resize: vertical; border: 2px solid var(--line); border-radius: 12px;
+    padding: 10px 12px; font: inherit; font-size: 14px; line-height: 1.6; background: #FFFDF6; color: var(--ink);
+  }
+  .note:focus { outline: none; border-color: var(--accent-dark); }
+  .memo-tag { font-size: 12px; font-weight: 400; color: var(--ink-soft); }
+  .note-state { font-size: 12px; font-weight: 400; color: #4E8A62; }
+  @media (max-width: 640px) { .work-form { grid-template-columns: 1fr 1fr; } }
+
+  /* 가계부 */
+  .plus { color: #3E8E62; }
+  .minus { color: #D04A5E; }
+  .fixed { color: #7A6BB0; }
+  .memo { font-size: 12px; color: var(--ink-soft); font-weight: 400; }
+  .flow { background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 4px 14px; }
+  .flow .line {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 15px;
+  }
+  .flow .line b { white-space: nowrap; font-size: 16px; }
+  .flow .sub-list { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .flow .total { border-bottom: 0; border-top: 2px solid var(--line); font-weight: 800; font-size: 16px; }
+  .flow .total b { font-size: 20px; }
+  .flow .right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .flow .hint { font-size: 12px; padding-bottom: 8px; }
+
+  .btn.mini { font-size: 12px; padding: 3px 9px; margin-top: 6px; }
+  .flow .fold {
+    width: 100%; background: none; border: 0; border-bottom: 1px dashed var(--line);
+    font: inherit; color: inherit; text-align: left; cursor: pointer;
+  }
+  .flow .fold:hover { background: #FFF5F6; }
+  .flow .caret { font-size: 12px; color: var(--accent-dark); font-weight: 700; margin-left: 4px; }
+  .fixed-detail { background: #FBF8FE; border-bottom: 1px dashed var(--line); padding: 4px 8px 10px 26px; }
+  .fx-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 14px; }
+  .fx-row .em { font-size: 16px; }
+  .fx-row .body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .fx-row .cat { font-size: 12px; color: var(--ink-soft); margin-left: 6px; }
+  .fx-row b { white-space: nowrap; }
+  .copy-box { margin-top: 10px; background: #fff; border: 2px solid var(--accent-dark); border-radius: 16px; padding: 12px 14px; }
+  .copy-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+  .copy-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .copy-row label { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; cursor: pointer; }
+  .copy-row input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent-dark); flex: none; }
+  .copy-row .body { min-width: 0; overflow-wrap: anywhere; }
+  .copy-row .cat { display: block; font-size: 12px; color: var(--ink-soft); }
+  .copy-amt {
+    width: 120px; text-align: right; border: 2px solid var(--line); border-radius: 8px; padding: 6px 8px;
+    font: inherit; font-size: 15px; font-weight: 800; color: var(--ink); background: #fff;
+  }
+  .copy-amt:focus { outline: none; border-color: var(--accent-dark); }
+
+  /* 용돈 생명바 */
+  .hp { margin-top: 10px; background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+  .hp .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+  .hp .label { font-weight: 800; font-size: 15px; }
+  .hp-bar { position: relative; height: 26px; margin-top: 8px; background: #4A3B35; border-radius: 10px; padding: 3px; }
+  .hp-bar > i {
+    display: block; height: 100%; border-radius: 7px; transition: width .4s;
+    background: linear-gradient(180deg, #9BEBA6, #4CBF5C); box-shadow: inset 0 -4px 0 rgba(0,0,0,.12);
+  }
+  .hp-bar.mid > i { background: linear-gradient(180deg, #FFE68A, #F2B728); }
+  .hp-bar.low > i { background: linear-gradient(180deg, #FFA3B0, #E0506A); animation: blink 1.1s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: .5; } }
+  .hp-bar span {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.65);
+  }
+  .hp .hint { font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
+
+  .bar { height: 12px; background: #FBE4E7; border-radius: 99px; overflow: hidden; margin-top: 8px; }
+  .bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); border-radius: 99px; }
+  .seg, .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pick { position: relative; }
+  .pick input { position: absolute; opacity: 0; pointer-events: none; }
+  .pick span {
+    display: inline-block; border: 2px solid var(--line); background: #fff; border-radius: 99px;
+    padding: 5px 12px; font-size: 13px; cursor: pointer; user-select: none;
+  }
+  .pick span:hover { background: #FFE8EC; }
+  .pick input:checked + span { background: var(--accent); border-color: var(--accent-dark); font-weight: 800; }
+  .pick input:focus-visible + span { outline: 2px solid var(--accent-dark); outline-offset: 2px; }
+  .money-form { grid-template-columns: 1fr 1fr; margin-top: 14px; }
+  .form input.amount { font-size: 18px; font-weight: 800; text-align: right; }
+  .stat { display: grid; grid-template-columns: 76px 1fr auto; gap: 10px; align-items: center; font-size: 14px; padding: 5px 0; }
+  .stat .bar { margin: 0; height: 10px; }
+  .stat b { white-space: nowrap; }
+  .idx-card { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin-bottom: 10px; }
+  .idx-card .top { display: flex; justify-content: space-between; align-items: center; font-weight: 800; margin-bottom: 4px; }
+  .idx { display: inline-block; min-width: 44px; text-align: center; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: #F3EDE6; color: var(--ink-soft); }
+  .idx-card .idx { font-size: 18px; padding: 2px 12px; }
+  .idx.up { background: #FFE1E1; color: #C0392B; }
+  .idx.down { background: #E3F4EA; color: #2E8B57; }
+  .idx.new { background: #EEF0FF; color: #5865C9; }
+
+  /* 내역: 고치기 · 지우기는 마우스를 올릴 때만 */
+  .day-head {
+    display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--ink-soft);
+    margin-top: 14px; padding: 0 2px 4px; border-bottom: 2px solid var(--line);
+  }
+  .mrow { display: flex; gap: 10px; align-items: center; padding: 7px 2px; border-radius: 10px; }
+  .mrow:hover { background: #FFF5F6; }
+  .mrow .em { font-size: 18px; width: 24px; text-align: center; }
+  .mrow .body { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  .mrow .cat { font-size: 12px; color: var(--ink-soft); margin-left: 6px; }
+  .mrow .amt { font-weight: 800; white-space: nowrap; font-size: 15px; }
+  .mrow .acts { display: flex; opacity: 0; transition: opacity .15s; }
+  .mrow:hover .acts, .mrow:focus-within .acts { opacity: 1; }
+  @media (hover: none) { .mrow .acts { opacity: 1; } }
+  @media (max-width: 640px) {
+    .stat { grid-template-columns: 64px 1fr; }
+    .stat b { grid-column: 1 / -1; text-align: right; }
+  }
+
+  /* 여행 */
+  .pack-box { background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+  .pack-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+  .pack-head .btn.mini { margin: 0 0 0 auto; }
+  .pack-box .bar { margin: 8px 0 4px; }
+  .pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin-top: 8px; }
+  .pack-item { display: flex; align-items: center; border: 2px solid var(--line); background: #FFFBF8; border-radius: 10px; padding: 4px 4px 4px 8px; }
+  .pack-item label { flex: 1; display: flex; gap: 8px; align-items: center; cursor: pointer; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+  .pack-item input { width: 18px; height: 18px; accent-color: var(--accent-dark); flex: none; }
+  .pack-item.done { background: #F3FBF4; border-color: #B9DFC1; }
+  .pack-item.done span { text-decoration: line-through; color: var(--ink-soft); }
+  .x-btn { border: 0; background: none; color: var(--ink-soft); font-size: 16px; cursor: pointer; padding: 0 6px; line-height: 1; }
+  .x-btn:hover { color: #D04A5E; }
+  .pack-form { grid-template-columns: 1fr auto; margin-top: 10px; }
+  .trip-form { grid-template-columns: 1fr 1fr; }
+  .date-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-soft); }
+  .trip-card, .day-card {
+    display: block; width: 100%; text-align: left; background: #fff; border: 2px solid var(--line);
+    border-radius: 16px; padding: 12px 14px; margin-top: 8px; cursor: pointer; font: inherit; color: var(--ink);
+  }
+  .trip-card:hover, .day-card:hover { background: #FFF5F0; border-color: #F2B3BE; }
+  .trip-card.past { opacity: .7; }
+  .tc-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 16px; }
+  .tc-top b { overflow-wrap: anywhere; }
+  .tc-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; margin-top: 6px; color: var(--ink-soft); }
+  .dc-top { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+  .dc-go { margin-left: auto; font-size: 13px; color: var(--accent-dark); font-weight: 700; }
+  .dc-plans { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; font-size: 14px; }
+  .dc-plans span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dc-plans b { color: var(--accent-dark); }
+  .day-name { display: flex; flex-direction: column; align-items: center; font-size: 18px; }
+  .cal-head .btn:disabled { opacity: .35; cursor: default; }
+  .dday.soon { background: #FFE3C2; color: #B5651D; font-weight: 700; }
+  .dday.now { background: #E0607E; color: #fff; font-weight: 700; }
+  .dday.past { background: #F0E8E4; color: var(--ink-soft); }
+  h2 .dday { font-size: 13px; vertical-align: middle; }
+  .btn.back { margin-bottom: 10px; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .link-btn { border: 0; background: none; color: var(--accent-dark); font: inherit; font-size: 13px; cursor: pointer; padding: 2px 4px; }
+  .link-btn:hover { text-decoration: underline; }
+  .plan-form { grid-template-columns: 140px 1fr; }
+  .empty.small { font-size: 13px; padding: 6px 0; }
+  .cost-sum {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #fff;
+    border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; font-size: 15px; margin-top: 10px;
+  }
+  .cost-sum b { font-size: 22px; color: #D04A5E; }
+  .cost-form { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 640px) { .trip-form, .plan-form, .cost-form { grid-template-columns: 1fr; } }
+
+  /* 백업 */
+  .backup-box { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .bk-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+  .bk-counts { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 13px; color: var(--ink-soft); }
+  .bk-counts b { color: var(--ink); }
+  .bk-btn { margin-top: 8px; padding: 9px 16px; font-size: 15px; }
+
+  /* 앱 안 확인 · 입력 창 */
+  .dlg-bg {
+    position: fixed; inset: 0; background: rgba(90,64,56,.35); z-index: 20;
+    display: none; align-items: center; justify-content: center; padding: 16px;
+  }
+  .dlg-bg.open { display: flex; }
+  .dlg {
+    width: 100%; max-width: 380px; background: var(--card); border: 3px solid var(--accent-dark);
+    border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(90,64,56,.25);
+  }
+  .dlg-msg { font-size: 15px; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
+  .dlg input {
+    width: 100%; margin-top: 12px; border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px;
+    font: inherit; font-size: 16px; background: #fff; color: var(--ink);
+  }
+  .dlg input:focus { outline: none; border-color: var(--accent-dark); }
+  .dlg input.num { text-align: right; font-weight: 800; font-size: 18px; }
+  .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+  /* 알림 한 줄 */
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--ink); color: #fff; border-radius: 99px; padding: 10px 18px; font-size: 14px;
+    opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 40; max-width: calc(100% - 32px);
+  }
+  .toast.show { opacity: 1; }
+
+  /* 로그인 · 로비 화면 (거실 위를 덮어요) */
+  .gate { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto; padding: 24px 16px; display: none; }
+  .gate.open { display: block; }
+  .gate-box { max-width: 460px; margin: 6vh auto 0; background: var(--card); border: 2px solid var(--line); border-radius: 22px; padding: 24px 22px; }
+  .gate-box.wide { max-width: 760px; }
+  .gate h1 { margin: 0 0 4px; font-size: 24px; }
+  .gate .sub { color: var(--ink-soft); font-size: 14px; margin-bottom: 16px; }
+  .gate form { display: grid; gap: 10px; }
+  .gate label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+  .gate input { font: inherit; font-size: 15px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); }
+  .gate input:focus { outline: 2px solid var(--accent-dark); outline-offset: 1px; }
+  .gate .btn { font-size: 15px; padding: 10px 14px; }
+  .gate .tabs { margin-bottom: 14px; }
+  .gate .err { color: #C0392B; font-size: 14px; font-weight: 700; min-height: 1em; }
+  .gate .memo { font-size: 13px; color: var(--ink-soft); }
+  .gate-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .houses { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .house { background: #fff; border: 2px solid var(--line); border-radius: 18px; padding: 14px; display: grid; gap: 6px; }
+  .house.mine { border-color: var(--accent-dark); background: #FFF5F7; }
+  .house .roof { font-size: 34px; line-height: 1; }
+  .house b { font-size: 16px; }
+  .house .st { font-size: 13px; color: var(--ink-soft); }
+  .house .btn { margin-top: 4px; }
+
+  /* 놀러 간 집 */
+  .visit-bar {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #EEF6FF; border: 2px solid #C9DDF5; border-radius: 16px; padding: 10px 14px; margin-bottom: 12px; font-weight: 700;
+  }
+  .visit-bar[hidden] { display: none; }
+  .board .col.locked .none { font-weight: 700; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <div class="hud">
+    <button class="lv-btn" type="button" onclick="openPanel('xp')" title="XP 받는 법 보기">
+      <span class="lv" id="hudLv">Lv.1 푸딩네 집</span>
+      <span class="xp">
+        <span class="xp-bar"><span class="xp-fill" id="hudFill" style="width:0%"></span></span>
+        <span class="xp-text" id="hudText">다음 레벨까지 50 XP · 가진 XP 0</span>
+      </span>
+    </button>
+    <div class="xp-pop" id="xpPop" aria-live="polite"></div>
+    <button type="button" onclick="goLobby()">🏘️ 로비</button>
+    <button type="button" onclick="openPanel('shop')">🛋️ 가구 상점</button>
+    <button type="button" onclick="openPanel('settings')">⚙️</button>
+  </div>
+  <div class="visit-bar" id="visitBar" hidden></div>
+
+  <div class="room-wrap">
+    <svg class="room" viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg" aria-label="푸딩네 거실">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop id="skyTop" offset="0" stop-color="#9ED8F5"/>
+          <stop id="skyBottom" offset="1" stop-color="#DFF3FB"/>
+        </linearGradient>
+        <clipPath id="winClip"><rect x="62" y="62" width="176" height="136" rx="4"/></clipPath>
+        <radialGradient id="lampGlow"><stop offset="0" stop-color="#FFE3C2" stop-opacity=".8"/><stop offset="1" stop-color="#FFE3C2" stop-opacity="0"/></radialGradient>
+        <!-- 벽지 물방울무늬 -->
+        <pattern id="dots" width="44" height="44" patternUnits="userSpaceOnUse">
+          <circle cx="11" cy="11" r="3.5" fill="#FFFFFF" opacity=".75"/>
+          <circle cx="33" cy="33" r="3.5" fill="#FFFFFF" opacity=".75"/>
+        </pattern>
+        <!-- 몽글몽글 물결 벽널 -->
+        <pattern id="scallop" width="40" height="14" patternUnits="userSpaceOnUse">
+          <path d="M0 14 Q20 -8 40 14 Z" fill="#FFF4EC"/>
+        </pattern>
+      </defs>
+
+      <!-- 벽 · 바닥 -->
+      <rect width="800" height="370" fill="#FCE1E6"/>
+      <rect width="800" height="300" fill="url(#dots)"/>
+      <rect y="0" width="800" height="14" fill="#F8CDD6"/>
+      <rect y="300" width="800" height="14" fill="url(#scallop)"/>
+      <rect y="314" width="800" height="56" fill="#FFF4EC"/>
+      <rect y="352" width="800" height="18" fill="#F6E2D6"/>
+      <rect y="370" width="800" height="150" fill="#EDD2B8"/>
+      <g stroke="#E0BC9C" stroke-width="2">
+        <line x1="0" y1="410" x2="800" y2="410"/><line x1="0" y1="455" x2="800" y2="455"/><line x1="0" y1="500" x2="800" y2="500"/>
+        <line x1="150" y1="370" x2="150" y2="410"/><line x1="420" y1="370" x2="420" y2="410"/><line x1="660" y1="370" x2="660" y2="410"/>
+        <line x1="60" y1="410" x2="60" y2="455"/><line x1="300" y1="410" x2="300" y2="455"/><line x1="560" y1="410" x2="560" y2="455"/>
+        <line x1="200" y1="455" x2="200" y2="500"/><line x1="480" y1="455" x2="480" y2="500"/><line x1="720" y1="455" x2="720" y2="500"/>
+      </g>
+
+      <!-- 12월 전구 장식 -->
+      <g id="lights" style="display:none">
+        <path d="M0 22 Q100 48 200 22 T400 22 T600 22 T800 22" fill="none" stroke="#6B7F5A" stroke-width="2"/>
+        <g class="bulb"><circle cx="50" cy="34" r="6" fill="#FF6B6B"/><circle cx="250" cy="34" r="6" fill="#FFD166"/><circle cx="450" cy="34" r="6" fill="#06D6A0"/><circle cx="650" cy="34" r="6" fill="#FF6B6B"/></g>
+        <g class="bulb" style="animation-delay:.8s"><circle cx="150" cy="34" r="6" fill="#4CC9F0"/><circle cx="350" cy="34" r="6" fill="#FF8FAB"/><circle cx="550" cy="34" r="6" fill="#FFD166"/><circle cx="750" cy="34" r="6" fill="#4CC9F0"/></g>
+      </g>
+
+      <!-- 창문 -->
+      <g id="window">
+        <rect x="52" y="52" width="196" height="156" rx="10" fill="#FFFFFF"/>
+        <g clip-path="url(#winClip)">
+          <rect x="62" y="62" width="176" height="136" fill="url(#sky)"/>
+          <circle id="sun" cx="196" cy="96" r="18" fill="#FFD95A"/>
+          <g id="clouds" fill="#FFFFFF" opacity=".9">
+            <ellipse cx="96" cy="88" rx="20" ry="9"/><ellipse cx="108" cy="82" rx="12" ry="9"/>
+            <ellipse cx="176" cy="150" rx="16" ry="7"/><ellipse cx="186" cy="145" rx="10" ry="7"/>
+          </g>
+          <g id="moon" style="display:none"><circle cx="196" cy="96" r="16" fill="#FFF4C2"/><circle cx="204" cy="90" r="14" id="moonCut" fill="#2C3E66"/></g>
+          <g id="stars" style="display:none" fill="#FFF">
+            <circle cx="90" cy="84" r="1.8"/><circle cx="130" cy="72" r="1.4"/><circle cx="160" cy="120" r="1.6"/><circle cx="110" cy="130" r="1.2"/><circle cx="225" cy="140" r="1.4"/>
+          </g>
+          <!-- 언덕과 나무: 계절에 따라 색이 바뀌어요 -->
+          <ellipse id="hill" cx="150" cy="215" rx="140" ry="45" fill="#8CCB7E"/>
+          <rect x="98" y="138" width="8" height="40" fill="#8B5E3C"/>
+          <circle id="treeTop" cx="102" cy="132" r="26" fill="#6DBE6A"/>
+          <g id="petals" style="display:none" fill="#FFB7C9">
+            <circle cx="90" cy="125" r="4"/><circle cx="112" cy="120" r="4"/><circle cx="104" cy="142" r="4"/><circle cx="88" cy="140" r="3"/><circle cx="118" cy="136" r="3"/><circle cx="160" cy="150" r="2.5"/><circle cx="180" cy="170" r="2.5"/>
+          </g>
+          <g id="snow" class="snow" style="display:none" fill="#FFFFFF">
+            <circle cx="80" cy="60" r="3" style="animation-duration:5s"/><circle cx="120" cy="50" r="2.5" style="animation-duration:6s;animation-delay:1s"/>
+            <circle cx="160" cy="55" r="3" style="animation-duration:4.5s;animation-delay:2s"/><circle cx="200" cy="45" r="2" style="animation-duration:5.5s;animation-delay:.5s"/>
+            <circle cx="225" cy="60" r="3" style="animation-duration:6.5s;animation-delay:1.5s"/><circle cx="100" cy="40" r="2" style="animation-duration:5s;animation-delay:3s"/>
+          </g>
+        </g>
+        <rect x="146" y="62" width="8" height="136" fill="#FFFFFF"/>
+        <rect x="62" y="126" width="176" height="8" fill="#FFFFFF"/>
+        <rect x="44" y="204" width="212" height="12" rx="4" fill="#F4EBDD"/>
+      </g>
+
+      <!-- 🪟 창문 꾸미기 -->
+      <g id="f-stars" style="display:none" fill="#FFE27A" opacity=".95">
+        <text x="70" y="84" font-size="16">★</text><text x="214" y="118" font-size="12">★</text>
+        <text x="122" y="186" font-size="14">★</text><text x="164" y="80" font-size="10">★</text>
+      </g>
+      <g id="f-chime" style="display:none">
+        <g class="chime">
+          <line x1="110" y1="62" x2="110" y2="80" stroke="#9A7C72" stroke-width="1.5"/>
+          <path d="M100 88 Q110 72 120 88 Z" fill="#A6D8F0"/>
+          <line x1="104" y1="88" x2="104" y2="98" stroke="#9A7C72"/><line x1="116" y1="88" x2="116" y2="98" stroke="#9A7C72"/>
+          <line x1="110" y1="88" x2="110" y2="100" stroke="#9A7C72"/>
+          <rect x="106" y="100" width="8" height="16" fill="#F4A3B4"/>
+        </g>
+      </g>
+      <g id="f-cactus" style="display:none">
+        <rect x="96" y="194" width="20" height="12" rx="2" fill="#F4B7A4"/>
+        <rect x="101" y="174" width="10" height="22" rx="5" fill="#6DBE6A"/>
+        <path d="M101 186 Q94 186 94 178" stroke="#6DBE6A" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <circle cx="106" cy="173" r="2.5" fill="#F7A9C0"/>
+        <rect x="186" y="196" width="18" height="10" rx="2" fill="#C9B8E8"/>
+        <circle cx="195" cy="191" r="7" fill="#8FD487"/><circle cx="191" cy="189" r="3" fill="#A6DC9F"/>
+      </g>
+      <g id="f-curtain" style="display:none">
+        <line x1="34" y1="46" x2="266" y2="46" stroke="#C9A08A" stroke-width="4" stroke-linecap="round"/>
+        <path d="M40 46 L86 46 Q74 110 84 130 Q66 170 72 206 L40 206 Z" fill="#F7B8C8"/>
+        <path d="M260 46 L214 46 Q226 110 216 130 Q234 170 228 206 L260 206 Z" fill="#F7B8C8"/>
+        <path d="M52 46 L52 206 M64 46 Q60 120 58 206" stroke="#F09CB0" stroke-width="2" fill="none" opacity=".6"/>
+        <path d="M248 46 L248 206 M236 46 Q240 120 242 206" stroke="#F09CB0" stroke-width="2" fill="none" opacity=".6"/>
+        <rect x="64" y="126" width="24" height="7" rx="3" fill="#FFF4EC"/><rect x="212" y="126" width="24" height="7" rx="3" fill="#FFF4EC"/>
+      </g>
+
+      <!-- 벽 달력 → 개인일정 -->
+      <g class="hot" onclick="openPanel('schedule')" role="button" aria-label="개인일정 열기">
+        <line x1="335" y1="58" x2="335" y2="70" stroke="#8A7660" stroke-width="3"/>
+        <rect x="290" y="68" width="90" height="104" rx="8" fill="#FFFFFF" stroke="#E0D2BC" stroke-width="2"/>
+        <rect x="290" y="68" width="90" height="28" rx="8" fill="#F4A3B4"/>
+        <rect x="290" y="86" width="90" height="10" fill="#F4A3B4"/>
+        <text id="calMonth" x="335" y="88" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">10월</text>
+        <text id="calDay" x="335" y="140" text-anchor="middle" font-size="40" font-weight="800" fill="#4A3B2C">24</text>
+        <text id="calWeek" x="335" y="162" text-anchor="middle" font-size="12" fill="#8A7660">토요일</text>
+        <text class="tag" x="335" y="196" text-anchor="middle">일정</text>
+        <g id="calBadge" style="display:none">
+          <circle cx="378" cy="72" r="12" fill="#E0607E" stroke="#fff" stroke-width="2"/>
+          <text id="calBadgeN" x="378" y="76.5" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">0</text>
+        </g>
+      </g>
+
+      <!-- 시계 -->
+      <g>
+        <circle cx="455" cy="110" r="38" fill="#FFFFFF" stroke="#EDB9A6" stroke-width="5"/>
+        <text id="clockTime" x="455" y="114" text-anchor="middle" font-size="21" font-weight="800" fill="#5A4038">14:00</text>
+        <text id="clockPart" x="455" y="132" text-anchor="middle" font-size="11" fill="#9A7C72">낮</text>
+      </g>
+
+      <!-- 문 1 → 업무 -->
+      <g class="hot" onclick="openPanel('work')" role="button" aria-label="업무 방 열기">
+        <rect x="536" y="128" width="112" height="226" rx="14" fill="#E4BE98"/>
+        <rect x="544" y="136" width="96" height="218" rx="12" fill="#B5D6BF"/>
+        <rect x="556" y="150" width="72" height="80" rx="10" fill="#CAE4D1"/>
+        <rect x="556" y="244" width="72" height="92" rx="10" fill="#CAE4D1"/>
+        <circle cx="626" cy="250" r="6" fill="#F6C9A0"/>
+        <rect x="562" y="170" width="60" height="38" rx="10" fill="#FFFBF8" stroke="#8DBA9C" stroke-width="2"/>
+        <text x="592" y="196" text-anchor="middle" font-size="18" font-weight="800" fill="#4A3B2C">💼업무</text>
+        <g id="workBadge" style="display:none">
+          <circle cx="626" cy="168" r="13" fill="#E0607E" stroke="#fff" stroke-width="2"/>
+          <text id="workBadgeN" x="626" y="172.5" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">0</text>
+        </g>
+      </g>
+
+      <!-- 문 2 → 여행 -->
+      <g class="hot" onclick="openPanel('travel')" role="button" aria-label="여행 방 열기">
+        <rect x="666" y="128" width="112" height="226" rx="14" fill="#E4BE98"/>
+        <rect x="674" y="136" width="96" height="218" rx="12" fill="#F2B3BE"/>
+        <rect x="686" y="150" width="72" height="80" rx="10" fill="#F8CAD1"/>
+        <rect x="686" y="244" width="72" height="92" rx="10" fill="#F8CAD1"/>
+        <circle cx="756" cy="250" r="6" fill="#F6C9A0"/>
+        <rect x="692" y="170" width="60" height="38" rx="10" fill="#FFFBF8" stroke="#DE95A2" stroke-width="2"/>
+        <text x="722" y="196" text-anchor="middle" font-size="18" font-weight="800" fill="#4A3B2C">✈️여행</text>
+      </g>
+
+      <!-- 스탠드 -->
+      <g>
+        <circle id="glow" cx="250" cy="270" r="90" fill="url(#lampGlow)" style="display:none"/>
+        <path d="M228 236 Q250 244 272 236 L262 206 Q250 200 238 206 Z" fill="#FFD3DC"/>
+        <rect x="248" y="236" width="4" height="56" fill="#C9A08A"/>
+      </g>
+
+      <!-- 책상 + 다이어리 → 가계부 -->
+      <g>
+        <rect x="40" y="290" width="230" height="16" rx="8" fill="#E2B68C"/>
+        <rect x="52" y="306" width="12" height="90" rx="6" fill="#D4A47A"/>
+        <rect x="246" y="306" width="12" height="90" rx="6" fill="#D4A47A"/>
+        <rect x="150" y="306" width="96" height="40" rx="8" fill="#DAAD83"/>
+        <circle cx="198" cy="326" r="4" fill="#FFF4EC"/>
+        <!-- 연필꽂이 -->
+        <rect x="64" y="258" width="26" height="32" rx="4" fill="#9ED0C0"/>
+        <rect x="68" y="240" width="4" height="22" fill="#F27A6B"/><rect x="76" y="236" width="4" height="26" fill="#F2C14E"/><rect x="84" y="244" width="4" height="18" fill="#6D8DB0"/>
+      </g>
+      <g class="hot" onclick="openPanel('money')" role="button" aria-label="가계부 다이어리 열기">
+        <rect x="118" y="262" width="76" height="28" rx="4" fill="#E58F9E"/>
+        <rect x="118" y="262" width="76" height="8" rx="3" fill="#F2B3BE"/>
+        <rect x="178" y="262" width="6" height="28" fill="#C66E7E"/>
+        <text x="148" y="285" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">₩ diary</text>
+        <text class="tag" x="156" y="252" text-anchor="middle">가계부</text>
+      </g>
+
+      <!-- 📝 책상 위 꾸미기 -->
+      <g id="f-vase" style="display:none">
+        <line x1="101" y1="270" x2="98" y2="252" stroke="#5EAF5B" stroke-width="2"/>
+        <line x1="105" y1="270" x2="106" y2="248" stroke="#5EAF5B" stroke-width="2"/>
+        <line x1="109" y1="270" x2="113" y2="254" stroke="#5EAF5B" stroke-width="2"/>
+        <ellipse cx="97" cy="250" rx="4" ry="6" fill="#F27A9B"/>
+        <ellipse cx="106" cy="245" rx="4" ry="6" fill="#FFD24D"/>
+        <ellipse cx="114" cy="252" rx="4" ry="6" fill="#F7A9C0"/>
+        <ellipse cx="105" cy="281" rx="9" ry="10" fill="#A6D8F0"/>
+        <rect x="100" y="266" width="10" height="8" rx="2" fill="#A6D8F0"/>
+      </g>
+      <g id="f-mug" style="display:none">
+        <path d="M203 266 Q200 260 204 254 M211 266 Q208 258 212 252" stroke="#D8CFCB" stroke-width="2" fill="none" class="steam"/>
+        <rect x="199" y="270" width="18" height="20" rx="3" fill="#FFFFFF" stroke="#E2B4BD" stroke-width="1.5"/>
+        <path d="M217 275 Q225 275 225 281 Q225 287 217 286" stroke="#E2B4BD" stroke-width="3" fill="none"/>
+        <path d="M208 284 C203 280 203 276 206 276 C207 276 208 277 208 278 C208 277 209 276 210 276 C213 276 213 280 208 284 Z" fill="#F4A3B4"/>
+      </g>
+      <g id="f-candle" style="display:none">
+        <circle cx="239" cy="272" r="10" fill="#FFE3A8" opacity=".35" class="flame"/>
+        <ellipse cx="239" cy="270" rx="3" ry="5.5" fill="#FFB347" class="flame"/>
+        <rect x="233" y="276" width="12" height="14" rx="2" fill="#FFF4EC" stroke="#E2B4BD"/>
+        <line x1="239" y1="273" x2="239" y2="277" stroke="#5A4038"/>
+      </g>
+
+      <!-- 화분 -->
+      <g id="plant">
+        <path d="M712 420 L752 420 L746 462 L718 462 Z" fill="#F4B7A4"/>
+        <ellipse cx="732" cy="400" rx="12" ry="24" fill="#6DBE6A"/>
+        <ellipse cx="716" cy="408" rx="10" ry="18" fill="#7FCB78" transform="rotate(-30 716 408)"/>
+        <ellipse cx="748" cy="408" rx="10" ry="18" fill="#5EAF5B" transform="rotate(30 748 408)"/>
+      </g>
+
+      <!-- 러그 (무지개 러그를 사면 색이 바뀌어요) -->
+      <ellipse id="rug1" cx="400" cy="462" rx="170" ry="36" fill="#F7B3C2"/>
+      <ellipse id="rug2" cx="400" cy="462" rx="146" ry="28" fill="#FFF0E4"/>
+      <ellipse id="rug3" cx="400" cy="462" rx="120" ry="20" fill="#FBCDB6"/>
+
+      <!-- ===== 가구 상점에서 산 가구 (놓은 것만 보여요) ===== -->
+      <!-- 🖼️ 액자 -->
+      <g id="f-frame" style="display:none">
+        <line x1="492" y1="150" x2="492" y2="160" stroke="#9A7C72" stroke-width="2"/>
+        <rect x="464" y="158" width="56" height="50" rx="4" fill="#E2B68C"/>
+        <rect x="470" y="164" width="44" height="38" rx="2" fill="#FFF4EC"/>
+        <path d="M492 196 C478 186 478 174 486 174 C490 174 492 178 492 180 C492 178 494 174 498 174 C506 174 506 186 492 196 Z" fill="#F4A3B4"/>
+      </g>
+      <!-- 🎏 가랜드 -->
+      <g id="f-garland" style="display:none">
+        <path d="M268 30 Q398 62 528 30" fill="none" stroke="#C9A08A" stroke-width="2"/>
+        <polygon points="285,36 303,36 294,52" fill="#F4A3B4"/>
+        <polygon points="319,41 337,41 328,57" fill="#FFE08A"/>
+        <polygon points="353,45 371,45 362,61" fill="#B5D6BF"/>
+        <polygon points="389,46 407,46 398,62" fill="#C9B8E8"/>
+        <polygon points="425,45 443,45 434,61" fill="#F4A3B4"/>
+        <polygon points="459,41 477,41 468,57" fill="#FFE08A"/>
+        <polygon points="493,36 511,36 502,52" fill="#B5D6BF"/>
+      </g>
+      <!-- 🪴 큰 화분 -->
+      <g id="f-plant" style="display:none">
+        <ellipse cx="296" cy="344" rx="10" ry="30" fill="#6DBE6A"/>
+        <ellipse cx="282" cy="352" rx="9" ry="24" fill="#7FCB78" transform="rotate(-28 282 352)"/>
+        <ellipse cx="311" cy="350" rx="9" ry="24" fill="#5EAF5B" transform="rotate(28 311 350)"/>
+        <ellipse cx="290" cy="330" rx="6" ry="16" fill="#8FD487" transform="rotate(-12 290 330)"/>
+        <path d="M276 372 L316 372 L310 404 L282 404 Z" fill="#F2B5BE"/>
+        <rect x="274" y="368" width="44" height="8" rx="3" fill="#E89BA8"/>
+      </g>
+      <!-- 🛋️ 소파 -->
+      <g id="f-sofa" style="display:none">
+        <rect x="562" y="366" width="112" height="46" rx="14" fill="#F7C6CF"/>
+        <rect x="556" y="400" width="124" height="34" rx="12" fill="#F4AFBD"/>
+        <rect x="550" y="392" width="20" height="46" rx="9" fill="#EFA0B0"/>
+        <rect x="666" y="392" width="20" height="46" rx="9" fill="#EFA0B0"/>
+        <rect x="578" y="378" width="26" height="22" rx="6" fill="#FFF4EC"/>
+        <rect x="562" y="436" width="6" height="10" fill="#C9A08A"/><rect x="668" y="436" width="6" height="10" fill="#C9A08A"/>
+      </g>
+      <!-- 🧸 곰인형 -->
+      <g id="f-bear" style="display:none">
+        <ellipse cx="290" cy="458" rx="17" ry="15" fill="#C8946A"/>
+        <circle cx="281" cy="420" r="5" fill="#C8946A"/><circle cx="299" cy="420" r="5" fill="#C8946A"/>
+        <circle cx="290" cy="433" r="14" fill="#D4A27A"/>
+        <ellipse cx="290" cy="438" rx="6" ry="4" fill="#EBD0B5"/>
+        <circle cx="285" cy="430" r="1.8" fill="#4A3B2C"/><circle cx="295" cy="430" r="1.8" fill="#4A3B2C"/>
+        <path d="M284 446 L290 449 L296 446 L290 452 Z" fill="#F4A3B4"/>
+      </g>
+      <!-- 📷 폴라로이드 줄 (문 위) -->
+      <g id="f-polaroid" style="display:none">
+        <path d="M556 72 Q658 92 760 72" fill="none" stroke="#C9A08A" stroke-width="1.5"/>
+        <g transform="rotate(-6 597 98)"><rect x="580" y="78" width="34" height="40" fill="#fff" stroke="#E8DCD6"/><rect x="584" y="82" width="26" height="24" fill="#A6D8F0"/><circle cx="604" cy="88" r="4" fill="#FFE27A"/></g>
+        <g transform="rotate(4 658 104)"><rect x="641" y="84" width="34" height="40" fill="#fff" stroke="#E8DCD6"/><rect x="645" y="88" width="26" height="24" fill="#F7B8C8"/><path d="M658 104 C652 99 652 94 655 94 C657 94 658 96 658 97 C658 96 659 94 661 94 C664 94 664 99 658 104 Z" fill="#fff"/></g>
+        <g transform="rotate(-3 719 98)"><rect x="702" y="78" width="34" height="40" fill="#fff" stroke="#E8DCD6"/><rect x="706" y="82" width="26" height="24" fill="#B5D6BF"/><path d="M706 106 L716 94 L724 102 L732 92 L732 106 Z" fill="#7FB98E"/></g>
+        <rect x="594" y="74" width="6" height="8" fill="#F4A3B4"/><rect x="655" y="80" width="6" height="8" fill="#FFD24D"/><rect x="716" y="74" width="6" height="8" fill="#C9B8E8"/>
+      </g>
+      <!-- 🎄 작은 트리 (창문 아래 바닥) -->
+      <g id="f-tree" style="display:none">
+        <rect x="23" y="392" width="8" height="14" fill="#9A6A3C"/>
+        <polygon points="27,330 6,366 48,366" fill="#5EAF5B"/>
+        <polygon points="27,348 2,394 52,394" fill="#4FA052"/>
+        <circle cx="18" cy="360" r="3" fill="#F27A9B"/><circle cx="36" cy="372" r="3" fill="#FFD24D"/>
+        <circle cx="16" cy="384" r="3" fill="#A6D8F0"/><circle cx="34" cy="388" r="3" fill="#F27A9B"/>
+        <text x="27" y="336" font-size="16" text-anchor="middle" fill="#FFD24D">★</text>
+      </g>
+      <!-- 🐱 고양이 친구 (소파가 있으면 소파 위에서 자요) -->
+      <g id="f-cat" style="display:none">
+        <g id="catPos" transform="translate(640 468)">
+          <path d="M16 2 Q32 0 26 -12" fill="none" stroke="#A8A0BC" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="0" cy="0" rx="19" ry="10" fill="#B9B2C8"/>
+          <polygon points="-24,-9 -21,-19 -16,-11" fill="#B9B2C8"/>
+          <polygon points="-13,-11 -9,-19 -7,-9" fill="#B9B2C8"/>
+          <circle cx="-15" cy="-4" r="9" fill="#C4BDD2"/>
+          <path d="M-20 -4 Q-18 -2 -16 -4" stroke="#4A3B2C" stroke-width="1.5" fill="none"/>
+          <path d="M-13 -4 Q-11 -2 -9 -4" stroke="#4A3B2C" stroke-width="1.5" fill="none"/>
+          <text x="6" y="-14" font-size="10" fill="#9A7C72">z</text>
+        </g>
+      </g>
+
+      <!-- 푸딩 (나만의 캐릭터) -->
+      <g class="pudding hot" onclick="sayRandom()" role="button" aria-label="푸딩에게 말 걸기">
+        <ellipse cx="400" cy="466" rx="58" ry="10" fill="#000" opacity=".08"/>
+        <!-- 몸통 -->
+        <ellipse cx="400" cy="434" rx="52" ry="34" fill="#FBE29A"/>
+        <!-- 발 -->
+        <ellipse cx="372" cy="462" rx="14" ry="8" fill="#F7D57D"/>
+        <ellipse cx="428" cy="462" rx="14" ry="8" fill="#F7D57D"/>
+        <!-- 머리 -->
+        <ellipse cx="400" cy="380" rx="62" ry="50" fill="#FBE29A"/>
+        <!-- 늘어진 귀 -->
+        <path d="M344 360 Q326 372 330 404 Q336 420 350 410 Q356 386 360 364 Z" fill="#9A6A3C"/>
+        <path d="M456 360 Q474 372 470 404 Q464 420 450 410 Q444 386 440 364 Z" fill="#9A6A3C"/>
+        <!-- 머리 위 작은 잎사귀 -->
+        <path d="M400 332 Q392 314 404 306 Q412 320 400 332 Z" fill="#8CCB7E"/>
+        <!-- 졸린 눈 -->
+        <path d="M378 384 Q384 390 390 384" stroke="#4A3B2C" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <path d="M410 384 Q416 390 422 384" stroke="#4A3B2C" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <!-- 코 · 입 -->
+        <ellipse cx="400" cy="394" rx="4" ry="3" fill="#6B4A2B"/>
+        <path d="M394 400 Q400 405 406 400" stroke="#6B4A2B" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <!-- 볼 -->
+        <ellipse cx="368" cy="398" rx="8" ry="5" fill="#F7A9A0" opacity=".7"/>
+        <ellipse cx="432" cy="398" rx="8" ry="5" fill="#F7A9A0" opacity=".7"/>
+        <!-- 목에 두른 민트 스카프 -->
+        <path id="scarf1" d="M356 416 Q400 432 444 416 L442 426 Q400 442 358 426 Z" fill="#7CC9B5"/>
+        <path id="scarf2" d="M424 424 L436 446 L420 444 Z" fill="#6AB8A4"/>
+        <!-- 🍮 푸딩 꾸미기 (푸딩과 같이 움직여요) -->
+        <g id="f-ribbon" style="display:none">
+          <path d="M344 352 L330 340 L332 364 Z" fill="#F27A9B"/>
+          <path d="M344 352 L358 340 L356 364 Z" fill="#F27A9B"/>
+          <circle cx="344" cy="352" r="5" fill="#E0607E"/>
+        </g>
+        <g id="f-flower" style="display:none">
+          <path d="M356 352 Q400 318 444 352" stroke="#7FB98E" stroke-width="3" fill="none"/>
+          <circle cx="360" cy="348" r="6" fill="#F7A9C0"/><circle cx="374" cy="338" r="6" fill="#FFD24D"/>
+          <circle cx="388" cy="333" r="6" fill="#C9B8E8"/><circle cx="412" cy="333" r="6" fill="#F7A9C0"/>
+          <circle cx="426" cy="338" r="6" fill="#FFD24D"/><circle cx="440" cy="348" r="6" fill="#C9B8E8"/>
+          <circle cx="360" cy="348" r="2" fill="#fff"/><circle cx="374" cy="338" r="2" fill="#fff"/><circle cx="388" cy="333" r="2" fill="#fff"/>
+          <circle cx="412" cy="333" r="2" fill="#fff"/><circle cx="426" cy="338" r="2" fill="#fff"/><circle cx="440" cy="348" r="2" fill="#fff"/>
+        </g>
+        <g id="f-crown" style="display:none">
+          <polygon points="378,340 378,314 389,326 400,306 411,326 422,314 422,340" fill="#FFD24D" stroke="#E0A800" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="400" cy="328" r="4" fill="#F27A9B"/><circle cx="386" cy="333" r="2.5" fill="#A6D8F0"/><circle cx="414" cy="333" r="2.5" fill="#A6D8F0"/>
+        </g>
+      </g>
+
+      <!-- 말풍선 -->
+      <g id="bubble">
+        <rect x="270" y="256" width="260" height="46" rx="20" fill="#FFFFFF" stroke="#E0D2BC" stroke-width="2"/>
+        <path d="M392 302 L400 316 L408 302 Z" fill="#FFFFFF"/>
+        <text id="bubbleText" x="400" y="285" text-anchor="middle" font-size="15" font-weight="700" fill="#4A3B2C">어서 와! 오늘은 뭘 적어 볼까?</text>
+      </g>
+
+      <!-- 밤에 방을 살짝 어둡게 -->
+      <rect id="nightShade" width="800" height="520" fill="#1C2440" opacity="0" pointer-events="none"/>
+    </svg>
+  </div>
+
+  <div class="today">
+    <div class="item" onclick="openPanel('schedule')"><div class="k">🗓️ 오늘 일정</div><div class="v" id="todaySched">0개</div></div>
+    <div class="item" onclick="openPanel('work')"><div class="k">💼 남은 업무</div><div class="v" id="todayWork">0개</div></div>
+    <div class="item" onclick="openPanel('travel')"><div class="k">✈️ 다음 여행</div><div class="v" id="todayTravel">계획 없음</div></div>
+    <div class="item" onclick="openPanel('money')"><div class="k" id="moneyLabel">📔 이번 달 쓴 돈</div><div class="v" id="todayMoney">0원</div></div>
+  </div>
+
+  <!-- 오늘판: 방에 들어가지 않아도 오늘 할 것이 목록으로 보여요 -->
+  <div class="board" id="todayBoard"></div>
+</div>
+
+<div class="panel-bg" id="panelBg" onclick="if (event.target === this) closePanel()">
+  <div class="panel" id="panel"></div>
+  <button class="more-hint" id="moreHint" type="button">▼ 아래에 더 있어요</button>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<div class="gate open" id="gate"><div class="gate-box"><h1>🍮 푸딩이네 동네</h1><div class="sub">불러오는 중…</div></div></div>
+<div class="levelup" id="levelUp" onclick="this.classList.remove('show')">
+  <div class="lu-card"><div class="lu-star">🎉</div><b>레벨 업!</b><span id="levelUpLv">Lv.2 푸딩네 집</span><small>기록해 줘서 고마워 🍮</small></div>
+</div>
+<div class="dlg-bg" id="dlgBg">
+  <form class="dlg" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgMsg" autocomplete="off">
+    <div class="dlg-msg" id="dlgMsg"></div>
+    <input id="dlgInput" type="text">
+    <div class="dlg-actions">
+      <button class="btn" type="button" id="dlgNo">취소</button>
+      <button class="btn primary" type="submit" id="dlgYes">확인</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // ---- 공통 도구 ----
+  const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+  const pad = n => String(n).padStart(2, '0');
+  const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  let toastTimer;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ---- 앱 안 확인 · 입력 창 (브라우저 기본 창은 막혀 있을 수 있어서 직접 만들어요) ----
+  let dlgDone = null;
+  function dialog(message, { input = false, value = '', numeric = false, okText = '확인' } = {}) {
+    if (dlgDone) dlgDone(null);
+    const box = document.getElementById('dlgInput');
+    document.getElementById('dlgMsg').textContent = message;
+    document.getElementById('dlgYes').textContent = okText;
+    box.style.display = input ? '' : 'none';
+    box.className = numeric ? 'num' : '';
+    box.inputMode = numeric ? 'numeric' : 'text';
+    box.value = value;
+    box.oninput = numeric ? () => formatAmount(box) : null;
+    document.getElementById('dlgBg').classList.add('open');
+    (input ? box : document.getElementById('dlgYes')).focus();
+    if (input) box.select();
+    return new Promise(resolve => {
+      dlgDone = result => {
+        dlgDone = null;
+        document.getElementById('dlgBg').classList.remove('open');
+        resolve(result);
+      };
+    });
+  }
+  const askConfirm = (message, okText) => dialog(message, { okText }).then(r => r !== null);
+  const askText = (message, value = '', numeric = false) => dialog(message, { input: true, value, numeric });
+  document.getElementById('dlg').addEventListener('submit', e => {
+    e.preventDefault();
+    if (dlgDone) dlgDone(document.getElementById('dlgInput').value);
+  });
+  document.getElementById('dlgNo').onclick = () => dlgDone && dlgDone(null);
+  // ---- 저장소 (이 컴퓨터 브라우저 안에 저장) ----
+  const STORE_KEY = 'my-home:v1';
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+  // 기록 id는 영문 · 숫자 · _ · - 만 (백업 파일 속 id에 코드가 숨어 들어오지 못하게)
+  const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+
+  function validSchedule(s) {
+    return !!s && typeof s.id === 'string' && ID_RE.test(s.id) && DATE_RE.test(s.date)
+      && typeof s.title === 'string' && s.title.trim() !== '' && s.title.length <= 100
+      && typeof s.time === 'string' && (s.time === '' || TIME_RE.test(s.time))
+      && typeof s.memo === 'string' && s.memo.length <= 300;
+  }
+  function validTask(t) {
+    return !!t && typeof t.id === 'string' && ID_RE.test(t.id)
+      && typeof t.title === 'string' && t.title.trim() !== '' && t.title.length <= 100
+      && typeof t.due === 'string' && (t.due === '' || DATE_RE.test(t.due))
+      && typeof t.urgent === 'boolean' && typeof t.done === 'boolean'
+      && typeof t.doneAt === 'string' && (t.doneAt === '' || DATE_RE.test(t.doneAt))
+      && typeof t.project === 'string' && t.project.length <= 30
+      && (t.detail === undefined || (typeof t.detail === 'string' && t.detail.length <= 2000));
+  }
+  const validProject = p => typeof p === 'string' && p.trim() !== '' && p.length <= 30;
+  const MAX_WON = 10000000000; // 100억 원까지
+  function tripDays(t) { return Math.round((parseYmd(t.end) - parseYmd(t.start)) / 86400000) + 1; }
+  function validTrip(t) {
+    return !!t && typeof t.id === 'string' && ID_RE.test(t.id) && typeof t.name === 'string' && t.name.trim() !== '' && t.name.length <= 40
+      && DATE_RE.test(t.start) && DATE_RE.test(t.end) && t.end >= t.start && tripDays(t) <= 60;
+  }
+  // 여행 안의 일정 · 준비물 · 경비도 한 줄씩 검사해요
+  function normalizeTrip(t) {
+    const n = tripDays(t);
+    const arr = v => Array.isArray(v) ? v : [];
+    const inDay = d => Number.isInteger(d) && d >= 0 && d < n;
+    return {
+      id: t.id, name: t.name, start: t.start, end: t.end,
+      plans: arr(t.plans).filter(p => !!p && typeof p.id === 'string' && ID_RE.test(p.id) && inDay(p.day)
+        && typeof p.title === 'string' && p.title.trim() !== '' && p.title.length <= 100
+        && typeof p.time === 'string' && (p.time === '' || TIME_RE.test(p.time))
+        && typeof p.memo === 'string' && p.memo.length <= 300),
+      packs: arr(t.packs).filter(p => !!p && typeof p.id === 'string' && ID_RE.test(p.id)
+        && typeof p.text === 'string' && p.text.trim() !== '' && p.text.length <= 60 && typeof p.done === 'boolean'),
+      // 예전에 '여행 전'(-1)으로 적은 비용은 1일차로 옮겨요
+      costs: arr(t.costs).filter(c => !!c && typeof c.id === 'string' && ID_RE.test(c.id) && (c.day === -1 || inDay(c.day))
+        && Number.isInteger(c.amount) && c.amount > 0 && c.amount <= MAX_WON
+        && typeof c.cat === 'string' && c.cat.length <= 10 && typeof c.memo === 'string' && c.memo.length <= 100)
+        .map(c => c.day === -1 ? { ...c, day: 0 } : c),
+    };
+  }
+  const PACK_DEFAULTS = ['세면도구', '카메라', '여권', '핸드폰', '속옷', '양말', '교통카드', '신용카드', '현금', '옷', '여행서류'];
+  // 필수 체크리스트: 처음 열 때는 기본 11개로 시작해요
+  function normalizePackList(v) {
+    if (!Array.isArray(v)) return PACK_DEFAULTS.map((text, i) => ({ id: 'pk' + i, text, done: false }));
+    return v.filter(p => !!p && typeof p.id === 'string' && ID_RE.test(p.id) && typeof p.text === 'string'
+      && p.text.trim() !== '' && p.text.length <= 30 && typeof p.done === 'boolean');
+  }
+  function validMoney(x) {
+    return !!x && typeof x.id === 'string' && ID_RE.test(x.id) && DATE_RE.test(x.date)
+      && (x.type === 'in' || x.type === 'fixed' || x.type === 'out')
+      && Number.isInteger(x.amount) && x.amount > 0 && x.amount <= MAX_WON
+      && typeof x.cat === 'string' && x.cat.length <= 10
+      && typeof x.memo === 'string' && x.memo.length <= 100;
+  }
+
+  // 형식이 틀린 줄만 건너뛰고 나머지는 지켜요
+  function normalize(obj) {
+    const base = obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {};
+    const list = (key, ok) => Array.isArray(base[key]) ? base[key].filter(ok) : [];
+
+    // 내용 칸이 생기기 전에 적은 할 일은 내용을 빈칸으로 채워요
+    const tasks = list('tasks', validTask).map(t => ({ detail: '', ...t }));
+    const projects = [...new Set(list('projects', validProject).concat(tasks.map(t => t.project).filter(Boolean)))];
+    const workNotes = {};
+    if (base.workNotes && typeof base.workNotes === 'object') {
+      for (const [k, v] of Object.entries(base.workNotes)) {
+        if (typeof v === 'string' && v.length <= 5000 && (k === '' || projects.includes(k))) workNotes[k] = v;
+      }
+    }
+    const budgets = {};
+    if (base.budgets && typeof base.budgets === 'object') {
+      for (const [k, v] of Object.entries(base.budgets)) {
+        if (/^\d{4}-\d{2}$/.test(k) && Number.isInteger(v) && v >= 0 && v <= MAX_WON) budgets[k] = v;
+      }
+    }
+    const db = { ...base, schedules: list('schedules', validSchedule), tasks, projects, workNotes, money: list('money', validMoney), budgets,
+      trips: list('trips', validTrip).map(normalizeTrip), packList: normalizePackList(base.packList),
+      lastBackup: typeof base.lastBackup === 'string' && DATE_RE.test(base.lastBackup) ? base.lastBackup : '' };
+    const x = base.xp;
+    const okXP = !!x && Number.isInteger(x.total) && x.total >= 0 && x.total <= 10000000
+      && Number.isInteger(x.spent) && x.spent >= 0 && x.spent <= x.total;
+    // XP가 아직 없으면(처음 켰거나 예전 기록) 지금까지 적은 기록만큼 XP를 채워 줘요
+    db.xp = okXP ? { total: x.total, spent: x.spent } : { total: xpFromRecords(db), spent: 0 };
+    // 가구: 산 것(owned) 중에서 거실에 놓은 것(placed)만 보여요
+    const f = base.furniture || {};
+    const owned = [...new Set(Array.isArray(f.owned) ? f.owned.filter(id => FURNITURE.some(it => it.id === id)) : [])];
+    db.furniture = { owned, placed: [...new Set(Array.isArray(f.placed) ? f.placed.filter(id => owned.includes(id)) : [])] };
+    return db;
+  }
+
+  // ---- 가구 목록 (가격 · 몇 레벨부터 살 수 있는지) ----
+  // place: 상점 탭 · slot: 같은 slot은 하나만 놓을 수 있어요 (예: 머리에 쓰는 것)
+  const FURNITURE = [
+    { id: 'curtain', place: 'window', emoji: '🌸', name: '꽃 커튼', price: 40, lv: 1, desc: '창문 양쪽에 분홍 커튼을 달아요' },
+    { id: 'cactus', place: 'window', emoji: '🌵', name: '창가 선인장', price: 30, lv: 1, desc: '창틀에 선인장 화분 두 개' },
+    { id: 'stars', place: 'window', emoji: '⭐', name: '별 스티커', price: 60, lv: 3, desc: '창문 유리에 반짝 별을 붙여요' },
+    { id: 'chime', place: 'window', emoji: '🎐', name: '풍경', price: 80, lv: 4, desc: '창가에서 살랑살랑 흔들려요' },
+    { id: 'mug', place: 'desk', emoji: '☕', name: '머그컵', price: 20, lv: 1, desc: '김이 모락모락 나는 하트 머그' },
+    { id: 'vase', place: 'desk', emoji: '🌷', name: '튤립 꽃병', price: 40, lv: 2, desc: '연필꽂이 옆에 튤립 세 송이' },
+    { id: 'candle', place: 'desk', emoji: '🕯️', name: '향초', price: 70, lv: 3, desc: '스탠드 아래에서 불꽃이 일렁여요' },
+    { id: 'frame', place: 'wall', emoji: '🖼️', name: '하트 액자', price: 30, lv: 1, desc: '시계 아래 벽에 걸어요' },
+    { id: 'garland', place: 'wall', emoji: '🎏', name: '가랜드', price: 50, lv: 2, desc: '천장에 알록달록 깃발을 달아요' },
+    { id: 'polaroid', place: 'wall', emoji: '📷', name: '폴라로이드 줄', price: 90, lv: 4, desc: '문 위에 추억 사진을 걸어요' },
+    { id: 'bear', place: 'floor', emoji: '🧸', name: '곰인형', price: 40, lv: 1, desc: '러그 위에서 푸딩이랑 놀아요' },
+    { id: 'plant', place: 'floor', emoji: '🪴', name: '큰 화분', price: 60, lv: 2, desc: '책상 옆에 초록 잎을 놓아요' },
+    { id: 'sofa', place: 'floor', emoji: '🛋️', name: '핑크 소파', price: 120, lv: 3, desc: '문 앞에 폭신한 소파를 놓아요' },
+    { id: 'cat', place: 'floor', emoji: '🐱', name: '고양이 친구', price: 150, lv: 4, desc: '소파가 있으면 소파 위에서 자요' },
+    { id: 'tree', place: 'floor', emoji: '🎄', name: '작은 트리', price: 120, lv: 5, desc: '창문 아래에 반짝이는 트리' },
+    { id: 'rainbow', place: 'floor', emoji: '🌈', name: '무지개 러그', price: 200, lv: 5, desc: '러그를 무지개색으로 바꿔요' },
+    { id: 'ribbon', place: 'pudding', slot: 'head', emoji: '🎀', name: '리본', price: 50, lv: 2, desc: '푸딩 귀에 분홍 리본을 달아요' },
+    { id: 'scarf', place: 'pudding', emoji: '🧣', name: '빨간 목도리', price: 60, lv: 3, desc: '민트 스카프를 빨간 목도리로' },
+    { id: 'flower', place: 'pudding', slot: 'head', emoji: '🌼', name: '꽃 화관', price: 100, lv: 4, desc: '푸딩 머리에 꽃을 둘러요' },
+    { id: 'crown', place: 'pudding', slot: 'head', emoji: '👑', name: '왕관', price: 300, lv: 7, desc: '열심히 기록한 푸딩에게 왕관을!' },
+  ];
+  const SHOP_TABS = [['all', '전체'], ['window', '🪟 창문'], ['desk', '📝 책상'], ['wall', '🖼️ 벽'], ['floor', '🛋️ 바닥'], ['pudding', '🍮 푸딩']];
+
+  // ---- XP 규칙 ----
+  const XP = { schedule: 10, task: 5, taskDone: 15, money: 10, trip: 20, plan: 10, cost: 5 };
+  function xpFromRecords(db) {
+    return db.schedules.length * XP.schedule
+      + db.tasks.length * XP.task + db.tasks.filter(t => t.done).length * XP.taskDone
+      + db.money.length * XP.money
+      + db.trips.reduce((s, t) => s + XP.trip + t.plans.length * XP.plan + t.costs.length * XP.cost, 0);
+  }
+  // Lv.1→2는 50 XP, 그다음부터 레벨마다 25 XP씩 더 필요해요
+  function levelInfo(total) {
+    let lv = 1, need = 50, cur = total;
+    while (cur >= need) { cur -= need; lv++; need = 50 + (lv - 1) * 25; }
+    return { lv, cur, need };
+  }
+
+  // DB: 지금 화면에 보이는 집 · HOME: 내 집 기록 · VISIT: 놀러 간 집의 문패 (내 집이면 null)
+  let DB = normalize({});
+  let HOME = null, VISIT = null, ME = null, MY_PROFILE = null, SB = null;
+
+  // 기록은 Supabase에 저장해요. 고칠 때마다 바로 보내지 않고 잠깐 모았다가 한 번에 보내요
+  let saveTimer = null, saving = Promise.resolve();
+  function saveDB() {
+    if (VISIT || !ME) return false; // 남의 집에서는 아무것도 저장하지 않아요
+    HOME = DB;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, 600);
+    return true;
+  }
+  function flushSave() {
+    if (!saveTimer) return saving;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    if (!ME || !HOME) return saving;
+    const uid = ME.id, db = HOME;
+    saving = saving.then(async () => {
+      const now = new Date().toISOString();
+      const r1 = await SB.from('homes').upsert({ user_id: uid, data: db, updated_at: now });
+      if (r1.error) throw r1.error;
+      const r2 = await SB.from('profiles').update({ public_data: publicData(db), updated_at: now }).eq('user_id', uid);
+      if (r2.error) throw r2.error;
+    }).catch(e => { console.error(e); toast('저장하지 못했어요. 인터넷 연결을 확인해 주세요'); });
+    return saving;
+  }
+  window.addEventListener('beforeunload', e => { if (saveTimer) { flushSave(); e.preventDefault(); e.returnValue = ''; } });
+
+  // ---- XP 주고 돌려받기 ----
+  // 기록을 적으면 +, 지우면 받았던 만큼 - (적었다 지웠다로 XP를 모을 수 없게)
+  function gainXP(amount) {
+    if (!amount) return;
+    const before = levelInfo(DB.xp.total).lv;
+    DB.xp.total = Math.max(DB.xp.spent, DB.xp.total + amount);
+    saveDB();
+    refreshHUD();
+    showXPPop(amount);
+    const after = levelInfo(DB.xp.total).lv;
+    if (after > before) showLevelUp(after);
+  }
+  let popTimer;
+  function showXPPop(amount) {
+    const el = document.getElementById('xpPop');
+    el.textContent = (amount > 0 ? '+' : '') + amount + ' XP';
+    el.classList.toggle('minus', amount < 0);
+    el.classList.remove('show');
+    void el.offsetWidth; // 애니메이션을 처음부터 다시
+    el.classList.add('show');
+    clearTimeout(popTimer);
+    popTimer = setTimeout(() => el.classList.remove('show'), 1300);
+  }
+  // '찌아' → '찌아네 집', 이미 '네'로 끝나는 '푸딩이네' → '푸딩이네 집'
+  const homeOf = name => name + (name.endsWith('네') ? ' 집' : '네 집');
+  const houseName = () => homeOf(VISIT ? VISIT.name : MY_PROFILE ? MY_PROFILE.name : '푸딩');
+  function showLevelUp(lv) {
+    const box = document.getElementById('levelUp');
+    document.getElementById('levelUpLv').textContent = `Lv.${lv} ${houseName()}`;
+    box.classList.add('show');
+    document.getElementById('bubbleText').textContent = `레벨 업! 고마워 🍮`;
+    setTimeout(() => box.classList.remove('show'), 2600);
+  }
+  function refreshHUD() {
+    const { lv, cur, need } = levelInfo(DB.xp.total);
+    document.getElementById('hudLv').textContent = `Lv.${lv} ${houseName()}`;
+    document.getElementById('hudFill').style.width = Math.round(cur / need * 100) + '%';
+    document.getElementById('hudText').textContent = VISIT ? '놀러 온 집이에요' : `다음 레벨까지 ${need - cur} XP · 가진 XP ${DB.xp.total - DB.xp.spent}`;
+  }
+
+  // ---- 개인일정 (벽 달력) ----
+  const cal = { y: 0, m: 0, sel: '', editId: null };
+  const byTime = (a, b) => (a.time || '').localeCompare(b.time || '');
+
+  function schedulesOn(date) { return DB.schedules.filter(s => s.date === date).sort(byTime); }
+  function ddayLabel(date) {
+    const diff = Math.round((parseYmd(date) - parseYmd(ymd(new Date()))) / 86400000);
+    return diff === 0 ? 'D-DAY' : 'D-' + diff;
+  }
+  function dateLabel(date) {
+    const d = parseYmd(date);
+    return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEK[d.getDay()]})`;
+  }
+
+  function openSchedule() {
+    const now = new Date();
+    Object.assign(cal, { y: now.getFullYear(), m: now.getMonth(), sel: ymd(now), editId: null });
+    renderSchedule();
+    document.getElementById('panelBg').classList.add('open');
+  }
+  function moveMonth(step) {
+    const d = new Date(cal.y, cal.m + step, 1);
+    cal.y = d.getFullYear(); cal.m = d.getMonth();
+    renderSchedule();
+  }
+  function goToday() { openSchedule(); }
+  function selectDay(date) {
+    const d = parseYmd(date);
+    Object.assign(cal, { y: d.getFullYear(), m: d.getMonth(), sel: date, editId: null });
+    renderSchedule();
+  }
+
+  function renderSchedule() {
+    const today = ymd(new Date());
+    const first = new Date(cal.y, cal.m, 1);
+    const days = new Date(cal.y, cal.m + 1, 0).getDate();
+    const cellCount = Math.ceil((first.getDay() + days) / 7) * 7;
+
+    let grid = WEEK.map((w, i) => `<div class="dow ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${w}</div>`).join('');
+    for (let i = 0; i < cellCount; i++) {
+      const d = new Date(cal.y, cal.m, 1 - first.getDay() + i);
+      const ds = ymd(d);
+      const items = schedulesOn(ds);
+      const cls = ['day',
+        d.getMonth() !== cal.m ? 'other' : '', ds === today ? 'is-today' : '', ds === cal.sel ? 'sel' : '',
+        d.getDay() === 0 ? 'sun' : d.getDay() === 6 ? 'sat' : ''].join(' ');
+      const chips = items.slice(0, 2).map(s => `<span class="chip">${esc(s.title)}</span>`).join('')
+        + (items.length > 2 ? `<span class="more">+${items.length - 2}</span>` : '');
+      grid += `<div class="${cls}" onclick="selectDay('${ds}')" role="button" aria-label="${dateLabel(ds)} 일정 ${items.length}개"><span class="n">${d.getDate()}</span>${chips}</div>`;
+    }
+
+    // 고른 날의 일정
+    const dayItems = schedulesOn(cal.sel);
+    const dayList = dayItems.length
+      ? dayItems.map(s => `
+          <div class="ev">
+            <div class="t">${s.time || '하루 종일'}</div>
+            <div class="body"><div>${esc(s.title)}</div>${s.memo ? `<div class="memo">${esc(s.memo)}</div>` : ''}</div>
+            <button class="icon-btn" type="button" title="고치기" onclick="startEdit('${s.id}')">✏️</button>
+            <button class="icon-btn" type="button" title="지우기" onclick="removeSchedule('${s.id}')">🗑️</button>
+          </div>`).join('')
+      : `<div class="empty">이날은 아직 일정이 없어요. 아래에 적어 보세요 ✍️</div>`;
+
+    const editing = cal.editId ? DB.schedules.find(s => s.id === cal.editId) : null;
+    const form = `
+      <form class="form" onsubmit="submitSchedule(event)" autocomplete="off">
+        <input type="time" name="evTime" value="${editing ? editing.time : ''}" aria-label="시간 (선택)">
+        <input type="text" name="evTitle" maxlength="100" placeholder="무슨 일정인가요? (예: 친구랑 카페)" value="${editing ? esc(editing.title) : ''}" required>
+        <input class="full" type="text" name="evMemo" maxlength="300" placeholder="메모 (선택)" value="${editing ? esc(editing.memo) : ''}">
+        <div class="actions">
+          ${editing ? `<button class="btn" type="button" onclick="cancelEdit()">취소</button>` : ''}
+          <button class="btn primary" type="submit">${editing ? '고친 내용 저장' : '+ 일정 추가'}</button>
+        </div>
+      </form>`;
+
+    // 다가오는 일정 (오늘부터 5개)
+    const upcoming = DB.schedules.filter(s => s.date >= today)
+      .sort((a, b) => a.date.localeCompare(b.date) || byTime(a, b)).slice(0, 5);
+    const upList = upcoming.length
+      ? upcoming.map(s => `
+          <div class="ev" style="cursor:pointer" onclick="selectDay('${s.date}')">
+            <div class="t">${dateLabel(s.date).replace(/ \(.\)/, '')}</div>
+            <div class="body"><div>${esc(s.title)}</div><div class="memo">${s.time || '하루 종일'}</div></div>
+            <span class="dday">${ddayLabel(s.date)}</span>
+          </div>`).join('')
+      : `<div class="empty">다가오는 일정이 없어요. 달력에서 날짜를 눌러 첫 일정을 적어 보세요.</div>`;
+
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <h2>🗓️ 개인일정</h2>
+      <div class="sub">날짜를 누르면 그날 일정을 보고 적을 수 있어요</div>
+      <div class="cal-head">
+        <button class="btn" type="button" onclick="moveMonth(-1)" aria-label="이전 달">◀</button>
+        <b>${cal.y}년 ${cal.m + 1}월</b>
+        <span>
+          <button class="btn" type="button" onclick="goToday()">오늘</button>
+          <button class="btn" type="button" onclick="moveMonth(1)" aria-label="다음 달">▶</button>
+        </span>
+      </div>
+      <div class="cal">${grid}</div>
+      <div class="sec">
+        <h3>${dateLabel(cal.sel)}${editing ? ' · 고치는 중' : ''}</h3>
+        ${dayList}
+        ${form}
+      </div>
+      <div class="sec">
+        <h3>⏰ 다가오는 일정</h3>
+        ${upList}
+      </div>`;
+  }
+
+  function submitSchedule(e) {
+    e.preventDefault();
+    const f = e.target.elements;
+    const item = { time: f.evTime.value, title: f.evTitle.value.trim(), memo: f.evMemo.value.trim() };
+    if (!item.title) { toast('일정 이름을 적어 주세요'); return; }
+    if (item.time && !TIME_RE.test(item.time)) item.time = '';
+
+    if (cal.editId) {
+      const s = DB.schedules.find(x => x.id === cal.editId);
+      if (s) Object.assign(s, item);
+      cal.editId = null;
+      if (saveDB()) toast('고친 내용을 저장했어요');
+    } else {
+      DB.schedules.push({ id: newId(), date: cal.sel, ...item });
+      gainXP(XP.schedule);
+      if (saveDB()) toast('일정을 적었어요 🍮');
+    }
+    renderSchedule();
+    refreshLiving();
+  }
+  function startEdit(id) { cal.editId = id; renderSchedule(); document.querySelector('.form input[name=evTitle]').focus(); }
+  function cancelEdit() { cal.editId = null; renderSchedule(); }
+  async function removeSchedule(id) {
+    const s = DB.schedules.find(x => x.id === id);
+    if (!s || !(await askConfirm(`'${s.title}' 일정을 지울까요?`))) return;
+    DB.schedules = DB.schedules.filter(x => x.id !== id);
+    gainXP(-XP.schedule);
+    if (cal.editId === id) cal.editId = null;
+    if (saveDB()) toast('일정을 지웠어요');
+    renderSchedule();
+    refreshLiving();
+  }
+
+  // ---- 업무 (파란 문) ----
+  const ALL = '__all';
+  const work = { tab: ALL, editId: null };
+  let noteTimer;
+
+  function dueInfo(due) {
+    if (!due) return null;
+    const diff = Math.round((parseYmd(due) - parseYmd(ymd(new Date()))) / 86400000);
+    if (diff < 0) return { cls: 'late', text: `${-diff}일 지남` };
+    if (diff === 0) return { cls: 'late', text: '오늘 마감' };
+    return { cls: diff <= 2 ? 'soon' : '', text: 'D-' + diff };
+  }
+  // 마감이 가까운 일이 위로, 마감이 같으면 급한 일이 위로, 마감 없는 일은 맨 아래
+  const byDue = (a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (b.urgent - a.urgent);
+  const urgentTasks = () => DB.tasks.filter(t => !t.done && t.due && t.due <= ymd(new Date()));
+
+  function openWork() {
+    if (work.tab !== ALL && !DB.projects.includes(work.tab)) work.tab = ALL;
+    work.editId = null;
+    renderWork();
+    document.getElementById('panelBg').classList.add('open');
+  }
+  function setWorkTab(i) { work.tab = i < 0 ? ALL : DB.projects[i]; work.editId = null; renderWork(); }
+
+  async function addProject() {
+    const name = ((await askText('새 프로젝트 이름을 적어 주세요 (30자까지)')) || '').trim();
+    if (!name) return;
+    if (name.length > 30) { toast('프로젝트 이름은 30자까지예요'); return; }
+    if (DB.projects.includes(name)) { toast('이미 있는 프로젝트예요'); work.tab = name; renderWork(); return; }
+    DB.projects.push(name);
+    work.tab = name;
+    if (saveDB()) toast(`'${name}' 프로젝트를 만들었어요`);
+    renderWork();
+  }
+  async function removeProject() {
+    const name = work.tab;
+    if (name === ALL || !(await askConfirm(`'${name}' 프로젝트를 지울까요?\n안에 있던 할 일은 지워지지 않고 '프로젝트 없음'으로 옮겨져요.`))) return;
+    DB.tasks.forEach(t => { if (t.project === name) t.project = ''; });
+    DB.projects = DB.projects.filter(p => p !== name);
+    delete DB.workNotes[name];
+    work.tab = ALL;
+    if (saveDB()) toast('프로젝트를 지웠어요');
+    renderWork();
+  }
+
+  function taskRow(t) {
+    const md = s => `${+s.slice(5, 7)}/${+s.slice(8)} (${WEEK[parseYmd(s).getDay()]})`;
+    const badges = [
+      t.urgent && !t.done ? `<span class="badge urgent">🔴 급함</span>` : '',
+      work.tab === ALL && t.project ? `<span class="badge proj">📁 ${esc(t.project)}</span>` : '',
+    ].join('');
+    // 오른쪽 날짜 칸: 할 일은 마감일, 끝낸 일은 끝낸 날
+    let dueBox;
+    if (t.done) {
+      dueBox = t.doneAt ? `<div class="due done"><b>${md(t.doneAt)}</b><span>끝냄 ✔</span></div>` : '';
+    } else if (t.due) {
+      const d = dueInfo(t.due);
+      dueBox = `<div class="due ${d.cls}"><b>${md(t.due)}</b><span>${d.text}</span></div>`;
+    } else {
+      dueBox = `<div class="due none"><span>마감 없음</span></div>`;
+    }
+    return `
+      <div class="task ${t.done ? 'done' : ''}">
+        <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask('${t.id}')" aria-label="끝냄 표시">
+        <div class="body">
+          <div class="title">${esc(t.title)}</div>
+          ${t.detail ? `<div class="detail" onclick="this.classList.toggle('open')" title="눌러서 펼치기 · 접기">${esc(t.detail)}</div>` : ''}
+          ${badges ? `<div class="meta">${badges}</div>` : ''}
+        </div>
+        ${dueBox}
+        ${t.done ? '' : `<button class="icon-btn" type="button" title="고치기" onclick="startTaskEdit('${t.id}')">✏️</button>`}
+        <button class="icon-btn" type="button" title="지우기" onclick="removeTask('${t.id}')">🗑️</button>
+      </div>`;
+  }
+
+  function renderWork() {
+    const inTab = DB.tasks.filter(t => work.tab === ALL || t.project === work.tab);
+    const todo = inTab.filter(t => !t.done).sort(byDue);
+    const done = inTab.filter(t => t.done).sort((a, b) => b.doneAt.localeCompare(a.doneAt));
+    const editing = work.editId ? DB.tasks.find(t => t.id === work.editId) : null;
+    const formProject = editing ? editing.project : (work.tab === ALL ? '' : work.tab);
+    const noteKey = work.tab === ALL ? '' : work.tab;
+
+    const tabs = `<button class="tab ${work.tab === ALL ? 'on' : ''}" type="button" onclick="setWorkTab(-1)">전체</button>`
+      + DB.projects.map((p, i) => `<button class="tab ${work.tab === p ? 'on' : ''}" type="button" onclick="setWorkTab(${i})">📁 ${esc(p)}</button>`).join('')
+      + `<button class="tab add" type="button" onclick="addProject()">+ 프로젝트</button>`;
+
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <h2>💼 업무</h2>
+      <div class="sub">마감이 가까운 일이 위로 올라와요. 끝낸 일은 체크하세요</div>
+      <div class="tabs">${tabs}</div>
+
+      <form class="form work-form" onsubmit="submitTask(event)" autocomplete="off">
+        <input class="full" type="text" name="tkTitle" maxlength="100" placeholder="할 일 (예: 주간 보고서 쓰기)" value="${editing ? esc(editing.title) : ''}" required>
+        <textarea class="full" name="tkDetail" maxlength="2000" rows="3" placeholder="내용 (선택) · 자세한 설명, 참고 링크, 챙길 것…">${editing ? esc(editing.detail) : ''}</textarea>
+        <input type="date" name="tkDue" value="${editing ? editing.due : ''}" aria-label="마감일 (선택)" title="마감일 (선택)">
+        <select name="tkProject" aria-label="프로젝트">
+          <option value="">프로젝트 없음</option>
+          ${DB.projects.map((p, i) => `<option value="${i}" ${p === formProject ? 'selected' : ''}>📁 ${esc(p)}</option>`).join('')}
+        </select>
+        <label class="check"><input type="checkbox" name="tkUrgent" ${editing && editing.urgent ? 'checked' : ''}> 🔴 급함</label>
+        <div class="actions">
+          ${editing ? `<button class="btn" type="button" onclick="cancelTaskEdit()">취소</button>` : ''}
+          <button class="btn primary" type="submit">${editing ? '고친 내용 저장' : '+ 할 일 추가'}</button>
+        </div>
+      </form>
+
+      <div class="sec">
+        <h3>할 일 ${todo.length}개</h3>
+        ${todo.length ? todo.map(taskRow).join('') : `<div class="empty">${inTab.length ? '다 끝냈어요! 오늘도 수고했어요 🍮' : '아직 할 일이 없어요. 위에 첫 할 일을 적어 보세요 ✍️'}</div>`}
+        ${done.length ? `<details><summary>끝낸 일 ${done.length}개 보기</summary>${done.map(taskRow).join('')}</details>` : ''}
+      </div>
+
+      <div class="sec">
+        <h3>📝 업무 메모 <span class="memo-tag">${work.tab === ALL ? '공통' : esc(work.tab)}</span> <span class="note-state" id="noteState"></span></h3>
+        <textarea class="note" maxlength="5000" placeholder="회의 내용, 아이디어, 참고할 것… 적으면 바로 저장돼요" oninput="saveNote(this.value)">${esc(DB.workNotes[noteKey] || '')}</textarea>
+      </div>
+
+      ${work.tab === ALL ? '' : `<div class="sec"><button class="btn" type="button" onclick="removeProject()">🗑️ '${esc(work.tab)}' 프로젝트 지우기</button></div>`}`;
+  }
+
+  function submitTask(e) {
+    e.preventDefault();
+    const f = e.target.elements;
+    const title = f.tkTitle.value.trim();
+    if (!title) { toast('할 일을 적어 주세요'); return; }
+    const item = {
+      title,
+      detail: f.tkDetail.value.trim().slice(0, 2000),
+      due: DATE_RE.test(f.tkDue.value) ? f.tkDue.value : '',
+      project: f.tkProject.value === '' ? '' : (DB.projects[+f.tkProject.value] || ''),
+      urgent: f.tkUrgent.checked,
+    };
+    if (work.editId) {
+      const t = DB.tasks.find(x => x.id === work.editId);
+      if (t) Object.assign(t, item);
+      work.editId = null;
+      if (saveDB()) toast('고친 내용을 저장했어요');
+    } else {
+      DB.tasks.push({ id: newId(), ...item, done: false, doneAt: '' });
+      gainXP(XP.task);
+      if (saveDB()) toast('할 일을 적었어요 💼');
+    }
+    renderWork();
+    refreshLiving();
+  }
+  function toggleTask(id) {
+    const t = DB.tasks.find(x => x.id === id);
+    if (!t) return;
+    t.done = !t.done;
+    t.doneAt = t.done ? ymd(new Date()) : '';
+    gainXP(t.done ? XP.taskDone : -XP.taskDone);
+    if (saveDB()) toast(t.done ? '끝! 수고했어 🍮' : '다시 할 일로 옮겼어요');
+    renderWork();
+    refreshLiving();
+  }
+  function startTaskEdit(id) { work.editId = id; renderWork(); document.querySelector('.work-form input[name=tkTitle]').focus(); }
+  function cancelTaskEdit() { work.editId = null; renderWork(); }
+  async function removeTask(id) {
+    const t = DB.tasks.find(x => x.id === id);
+    if (!t || !(await askConfirm(`'${t.title}' 할 일을 지울까요?`))) return;
+    DB.tasks = DB.tasks.filter(x => x.id !== id);
+    gainXP(-(XP.task + (t.done ? XP.taskDone : 0)));
+    if (work.editId === id) work.editId = null;
+    if (saveDB()) toast('할 일을 지웠어요');
+    renderWork();
+    refreshLiving();
+  }
+  // 메모는 적는 즉시 기억하고, 손을 멈추면 0.4초 뒤에 저장해요
+  function saveNote(value) {
+    DB.workNotes[work.tab === ALL ? '' : work.tab] = value.slice(0, 5000);
+    const state = document.getElementById('noteState');
+    if (state) state.textContent = '저장 중…';
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => {
+      const ok = saveDB();
+      const s = document.getElementById('noteState');
+      if (s) s.textContent = ok ? '✔ 저장됨' : '';
+    }, 400);
+  }
+
+  // ---- 가계부 (책상 위 다이어리) ----
+  // 들어온 돈 − 고정비 − 용돈 = 남은 돈 (→ 자유적금)
+  const CATS = {
+    in: [['월급', '💰'], ['기타', '✨']],
+    fixed: [['통신', '📱'], ['구독료', '📺'], ['보험', '🛡️'], ['적금', '🐷'], ['주거', '🏠'], ['기타', '📌']],
+    out: [['식비', '🍚'], ['카페', '☕'], ['교통', '🚌'], ['쇼핑', '🛍️'], ['생활', '🧺'], ['문화', '🎬'], ['기타', '📦']],
+  };
+  const FREE_SAVING = '자유적금';
+  const FALLBACK = { in: '✨', fixed: '📌', out: '📦' };
+  const catEmoji = (type, cat) => cat === FREE_SAVING ? '💖' : (CATS[type].find(c => c[0] === cat) || [, FALLBACK[type]])[1];
+  const won = n => n.toLocaleString('ko-KR') + '원';
+  const money = { y: 0, m: 0, type: 'out', cat: '식비', editId: null, view: 'all', copyOpen: false };
+  const monthKey = () => money.y + '-' + pad(money.m + 1);
+
+  // 금액 칸의 글자에서 숫자만 꺼내요 (쉼표, '원', 띄어쓰기는 무시)
+  function parseAmount(str) {
+    const digits = String(str).replace(/[,\s원]/g, '');
+    return /^\d{1,11}$/.test(digits) ? Number(digits) : null;
+  }
+  function formatAmount(el) {
+    const digits = el.value.replace(/\D/g, '').slice(0, 11);
+    el.value = digits ? Number(digits).toLocaleString('ko-KR') : '';
+  }
+  // 용돈: 그 달에 안 정했으면 가장 가까운 지난달 용돈을 이어서 써요 (예전에 정한 '예산'도 여기 들어 있어요)
+  function allowanceFor(key) {
+    const keys = Object.keys(DB.budgets).filter(k => k <= key).sort();
+    return keys.length ? DB.budgets[keys[keys.length - 1]] : 0;
+  }
+  function monthTotals(key) {
+    const t = { inSum: 0, fixedSum: 0, outSum: 0, saved: 0, byCat: {}, fixedByCat: {} };
+    DB.money.forEach(x => {
+      if (x.date.slice(0, 7) !== key) return;
+      if (x.type === 'in') t.inSum += x.amount;
+      else if (x.type === 'fixed' && x.cat === FREE_SAVING) t.saved += x.amount;
+      else if (x.type === 'fixed') { t.fixedSum += x.amount; t.fixedByCat[x.cat] = (t.fixedByCat[x.cat] || 0) + x.amount; }
+      else { t.outSum += x.amount; t.byCat[x.cat] = (t.byCat[x.cat] || 0) + x.amount; }
+    });
+    t.allowance = allowanceFor(key);
+    t.allowanceUsed = Math.max(t.allowance, t.outSum); // 정한 용돈만큼, 더 썼으면 쓴 만큼 빼요
+    t.left = t.inSum - t.fixedSum - t.allowanceUsed - t.saved;
+    return t;
+  }
+  // 내 평균 = 100: 용돈 쓴 기록이 있는 지난 석 달을 평균 내요
+  // 이번 달이면 지난달들도 같은 날짜까지만 더해요 (8일에 한 달 치와 비교하면 늘 적게 쓴 것처럼 보여서)
+  function myAverage(key) {
+    const [y, m] = key.split('-').map(Number);
+    const isNow = key === ymd(new Date()).slice(0, 7);
+    const cutDay = isNow ? new Date().getDate() : 31;
+    const months = [];
+    for (let back = 1; back <= 12 && months.length < 3; back++) {
+      const pk = ymd(new Date(y, m - 1 - back, 1)).slice(0, 7);
+      const rows = DB.money.filter(x => x.type === 'out' && x.date.slice(0, 7) === pk);
+      if (rows.length) months.push(rows.filter(x => +x.date.slice(8) <= cutDay));
+    }
+    const avg = { months: months.length, isNow, cutDay, total: 0, byCat: {} };
+    months.flat().forEach(x => {
+      avg.total += x.amount / months.length;
+      avg.byCat[x.cat] = (avg.byCat[x.cat] || 0) + x.amount / months.length;
+    });
+    return avg;
+  }
+  const toIndex = (cur, base) => base > 0 ? Math.round(cur / base * 100) : null;
+
+  function openMoney() {
+    const now = new Date();
+    Object.assign(money, { y: now.getFullYear(), m: now.getMonth(), editId: null, copyOpen: false });
+    renderMoney();
+    document.getElementById('panel').classList.add('square');
+    document.getElementById('panelBg').classList.add('open');
+  }
+  function moveMoneyMonth(step) {
+    const d = new Date(money.y, money.m + step, 1);
+    Object.assign(money, { y: d.getFullYear(), m: d.getMonth(), editId: null, copyOpen: false });
+    renderMoney();
+  }
+
+  // ---- 고정비: 지난달 것 가져오기 ----
+  function prevFixed() {
+    const prevKey = ymd(new Date(money.y, money.m - 1, 1)).slice(0, 7);
+    return DB.money.filter(x => x.type === 'fixed' && x.cat !== FREE_SAVING && x.date.slice(0, 7) === prevKey)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+  // 이번 달에 같은 분류 · 같은 메모의 고정비가 이미 있으면 두 번 넣지 않아요
+  const fixedExists = x => DB.money.some(y => y.type === 'fixed' && y.date.slice(0, 7) === monthKey() && y.cat === x.cat && y.memo === x.memo);
+  function toggleCopy() { money.copyOpen = !money.copyOpen; renderMoney(); }
+
+  // 고정비 접기 · 펼치기 (마지막 상태를 이 브라우저에 기억해요)
+  const FOLD_KEY = 'my-home:fixed-open';
+  function isFixedOpen() {
+    try { return localStorage.getItem(FOLD_KEY) !== '0'; } catch (e) { return true; }
+  }
+  function toggleFixed() {
+    try { localStorage.setItem(FOLD_KEY, isFixedOpen() ? '0' : '1'); } catch (e) {}
+    renderMoney();
+  }
+  function copyBox() {
+    const items = prevFixed();
+    const rows = items.map(x => {
+      const has = fixedExists(x);
+      return `
+        <div class="copy-row">
+          <label>
+            <input type="checkbox" data-id="${x.id}" ${has ? '' : 'checked'}>
+            <span class="em">${catEmoji('fixed', x.cat)}</span>
+            <span class="body">${esc(x.memo || x.cat)}<span class="cat">${esc(x.cat)} · 매달 ${+x.date.slice(8)}일${has ? ' · 이번 달에 이미 있어요' : ''}</span></span>
+          </label>
+          <input class="copy-amt" type="text" inputmode="numeric" value="${x.amount.toLocaleString('ko-KR')}" oninput="formatAmount(this)" aria-label="${esc(x.memo || x.cat)} 금액">
+          <span>원</span>
+        </div>`;
+    }).join('');
+    return `
+      <div class="copy-box">
+        <div class="copy-head"><b>📋 ${new Date(money.y, money.m - 1, 1).getMonth() + 1}월 고정비 가져오기</b>
+          <span class="memo">가져올 것만 체크하고, 금액이 바뀌었으면 고쳐 주세요</span></div>
+        ${rows}
+        <div class="dlg-actions">
+          <button class="btn" type="button" onclick="toggleCopy()">취소</button>
+          <button class="btn primary" type="button" onclick="importFixed()">체크한 것 가져오기</button>
+        </div>
+      </div>`;
+  }
+  function importFixed() {
+    const lastDay = new Date(money.y, money.m + 1, 0).getDate();
+    let count = 0, bad = 0;
+    document.querySelectorAll('.copy-row').forEach(row => {
+      const cb = row.querySelector('input[type=checkbox]');
+      if (!cb.checked) return;
+      const src = DB.money.find(x => x.id === cb.dataset.id);
+      const amount = parseAmount(row.querySelector('.copy-amt').value);
+      if (!src || !amount || amount > MAX_WON) { bad++; return; }
+      // 지난달과 같은 날로 넣어요 (31일처럼 이번 달에 없는 날은 말일로)
+      const day = Math.min(+src.date.slice(8), lastDay);
+      DB.money.push({ id: newId(), date: monthKey() + '-' + pad(day), type: 'fixed', amount, cat: src.cat, memo: src.memo });
+      count++;
+    });
+    if (!count) { toast(bad ? '금액을 숫자로 적어 주세요' : '가져올 항목을 체크해 주세요'); return; }
+    gainXP(XP.money * count);
+    money.copyOpen = false;
+    if (saveDB()) toast(`고정비 ${count}개를 가져왔어요 📋`);
+    renderMoney();
+    refreshLiving();
+  }
+
+  function setMoneyView(v) { money.view = v; renderMoney(); }
+  function catPicks() {
+    return CATS[money.type].map(([c, e]) => `
+      <label class="pick"><input type="radio" name="mCat" value="${c}" ${c === money.cat ? 'checked' : ''} onchange="money.cat = this.value"><span>${e} ${c}</span></label>`).join('');
+  }
+  // 종류를 바꾸면 분류 칩만 다시 그려요 (적던 금액은 그대로)
+  function setMoneyType(type) {
+    money.type = type;
+    if (!CATS[type].some(c => c[0] === money.cat)) money.cat = CATS[type][0][0];
+    document.getElementById('catPicks').innerHTML = catPicks();
+  }
+  async function setAllowance() {
+    const key = monthKey();
+    const cur = allowanceFor(key);
+    const v = await askText(`${money.m + 1}월 용돈을 얼마로 할까요? (원)\n0을 적으면 용돈 없이 써요`, cur ? cur.toLocaleString('ko-KR') : '', true);
+    if (v === null) return;
+    const n = parseAmount(v);
+    if (n === null || n > MAX_WON) { toast('용돈은 숫자로 적어 주세요'); return; }
+    DB.budgets[key] = n;
+    if (saveDB()) toast(n ? `${money.m + 1}월 용돈을 ${won(n)}으로 정했어요` : '용돈 없이 쓸게요');
+    renderMoney();
+    refreshLiving();
+  }
+  // 남은 돈을 자유적금으로 한 번에 옮겨요
+  async function saveLeftover() {
+    const key = monthKey();
+    const { left } = monthTotals(key);
+    if (left <= 0 || !(await askConfirm(`남은 돈 ${won(left)}을 자유적금에 넣을까요?`))) return;
+    const today = ymd(new Date());
+    const date = today.slice(0, 7) === key ? today : ymd(new Date(money.y, money.m + 1, 0));
+    DB.money.push({ id: newId(), date, type: 'fixed', amount: left, cat: FREE_SAVING, memo: '남은 돈 자유적금' });
+    gainXP(XP.money);
+    if (saveDB()) toast(`💖 자유적금에 ${won(left)} 넣었어요!`);
+    renderMoney();
+    refreshLiving();
+  }
+
+  function renderMoney() {
+    const key = monthKey();
+    const t = monthTotals(key);
+    const editing = money.editId ? DB.money.find(x => x.id === money.editId) : null;
+    const today = ymd(new Date());
+    const formDate = editing ? editing.date : (today.slice(0, 7) === key ? today : key + '-01');
+
+    // 돈 흐름: 들어온 돈 − 고정비 − 용돈 − 자유적금 = 남은 돈
+    const hasPrevFixed = prevFixed().length > 0;
+    if (!hasPrevFixed) money.copyOpen = false;
+    const fixedItems = DB.money.filter(x => x.type === 'fixed' && x.cat !== FREE_SAVING && x.date.slice(0, 7) === key)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const fixedOpen = isFixedOpen();
+    const fixedDetail = `
+      <div class="fixed-detail">
+        ${fixedItems.map(x => `
+          <div class="fx-row">
+            <span class="em">${catEmoji('fixed', x.cat)}</span>
+            <span class="body">${esc(x.memo || x.cat)}<span class="cat">${esc(x.cat)} · 매달 ${+x.date.slice(8)}일</span></span>
+            <b class="fixed">${won(x.amount)}</b>
+            <button class="icon-btn" type="button" title="고치기" onclick="startMoneyEdit('${x.id}')">✏️</button>
+          </div>`).join('') || `<div class="empty">이번 달 고정비가 아직 없어요.</div>`}
+        ${hasPrevFixed && !money.copyOpen ? `<button class="btn mini" type="button" onclick="toggleCopy()">📋 지난달 고정비 가져오기</button>` : ''}
+      </div>`;
+    const allowanceNote = !t.allowance ? '쓴 돈' : t.outSum > t.allowance ? '정한 것보다 더 썼어요' : '정해 둔 돈';
+    const flow = `
+      <div class="flow">
+        <div class="line"><span>💰 들어온 돈</span><b class="plus">+${won(t.inSum)}</b></div>
+        <button class="line fold" type="button" onclick="toggleFixed()" aria-expanded="${fixedOpen}">
+          <span>🏠 고정비 <span class="memo">${fixedItems.length}개</span> <span class="caret">${fixedOpen ? '▾ 접기' : '▸ 펼치기'}</span></span>
+          <b class="fixed">-${won(t.fixedSum)}</b>
+        </button>
+        ${fixedOpen ? fixedDetail : ''}
+        <div class="line"><span>👛 용돈 <span class="memo">${allowanceNote}</span></span><b class="minus">-${won(t.allowanceUsed)}</b></div>
+        ${t.saved ? `<div class="line"><span>💖 자유적금</span><b class="fixed">-${won(t.saved)}</b></div>` : ''}
+        <div class="line total">
+          <span>🐷 남은 돈</span>
+          <span class="right">
+            <b class="${t.left < 0 ? 'minus' : ''}">${t.left < 0 ? '-' : ''}${won(Math.abs(t.left))}</b>
+            ${t.left > 0 ? `<button class="btn primary" type="button" onclick="saveLeftover()">💖 자유적금에 넣기</button>` : ''}
+          </span>
+        </div>
+        ${t.left < 0 ? `<div class="hint minus">들어온 돈보다 ${won(-t.left)} 더 나갔어요</div>` : ''}
+      </div>`;
+
+    // 용돈 생명바
+    let hp;
+    if (t.allowance) {
+      const remain = t.allowance - t.outSum;
+      const ratio = Math.max(0, remain) / t.allowance;
+      const cls = ratio > 0.5 ? '' : ratio > 0.2 ? 'mid' : 'low';
+      let hint = `${Math.round((1 - ratio) * 100)}% 썼어요`;
+      if (key === today.slice(0, 7)) {
+        const daysLeft = new Date(money.y, money.m + 1, 0).getDate() - new Date().getDate() + 1;
+        hint = remain > 0 ? `남은 ${daysLeft}일 동안 하루 ${won(Math.floor(remain / daysLeft))}씩 쓸 수 있어요` : '용돈을 다 썼어요. 이번 달은 조금만 버텨 보자 💪';
+      }
+      hp = `
+        <div class="hp">
+          <div class="top"><span class="label">👛 남은 용돈</span><button class="btn" type="button" onclick="setAllowance()">용돈 바꾸기</button></div>
+          <div class="hp-bar ${cls}"><i style="width:${Math.round(ratio * 100)}%"></i>
+            <span>${remain < 0 ? '-' : ''}${won(Math.abs(remain))} / ${won(t.allowance)}</span></div>
+          <div class="hint">${hint}</div>
+        </div>`;
+    } else {
+      hp = `<div class="hp"><div class="top"><span>👛 한 달 용돈을 정하면 생명바처럼 줄어드는 게 보여요</span>
+        <button class="btn primary" type="button" onclick="setAllowance()">용돈 정하기</button></div></div>`;
+    }
+
+    // 용돈 어디에 썼을까? (내 평균 = 100 지수와 함께)
+    const avg = myAverage(key);
+    const idxTag = (cur, base) => {
+      if (!avg.months) return '';
+      const n = toIndex(cur, base);
+      if (n === null) return `<span class="idx new">처음</span>`;
+      const cls = n >= 110 ? 'up' : n <= 90 ? 'down' : '';
+      return `<span class="idx ${cls}">${n}${n >= 110 ? ' ▲' : n <= 90 ? ' ▼' : ''}</span>`;
+    };
+    let idxCard;
+    if (!avg.months) {
+      idxCard = `<div class="idx-card"><div class="memo">📈 용돈 기록이 한 달 쌓이면 <b>내 평균 = 100</b>으로 이번 달과 비교해 줄게요</div></div>`;
+    } else {
+      const n = toIndex(t.outSum, avg.total);
+      const range = avg.isNow ? `지난 ${avg.months}달 ${avg.cutDay}일까지 평균` : `지난 ${avg.months}달 평균`;
+      const say = n === null ? '지난달들엔 이 날짜까지 쓴 용돈이 없었어요'
+        : n >= 110 ? `${range}보다 ${n - 100}% 더 썼어요`
+        : n <= 90 ? `${range}보다 ${100 - n}% 덜 썼어요 👍`
+        : `${range}과 비슷하게 쓰고 있어요`;
+      idxCard = `
+        <div class="idx-card">
+          <div class="top"><span>👛 용돈 지수 <span class="memo">내 평균 = 100</span></span>${idxTag(t.outSum, avg.total)}</div>
+          <div class="memo">${say} · 평균 ${won(Math.round(avg.total))}</div>
+        </div>`;
+    }
+    const cats = Object.entries(t.byCat).sort((a, b) => b[1] - a[1]);
+    const stats = idxCard + (cats.length
+      ? cats.map(([c, v]) => `
+          <div class="stat"><span>${catEmoji('out', c)} ${esc(c)}</span>
+            <div class="bar"><i style="width:${Math.max(2, v / t.outSum * 100)}%"></i></div>
+            <b>${won(v)} <span class="memo">${Math.round(v / t.outSum * 100)}%</span> ${idxTag(v, avg.byCat[c] || 0)}</b></div>`).join('')
+      : `<div class="empty">이번 달 용돈 쓴 내역이 아직 없어요.</div>`);
+
+    // 내역 (종류별 탭, 최근 날짜가 위로)
+    const rows = DB.money.filter(x => x.date.slice(0, 7) === key && (money.view === 'all' || x.type === money.view))
+      .map((x, i) => [x, i]).sort((a, b) => b[0].date.localeCompare(a[0].date) || b[1] - a[1]).map(p => p[0]);
+    const SIGN = { in: ['+', 'plus'], fixed: ['-', 'fixed'], out: ['-', 'minus'] };
+    let list = '', lastDate = '';
+    rows.forEach(x => {
+      if (x.date !== lastDate) {
+        lastDate = x.date;
+        const dayOut = rows.filter(r => r.date === x.date && r.type !== 'in').reduce((s, r) => s + r.amount, 0);
+        list += `<div class="day-head"><span>${dateLabel(x.date)}</span><span>${dayOut ? '나간 돈 ' + won(dayOut) : ''}</span></div>`;
+      }
+      list += `
+        <div class="mrow">
+          <span class="em">${catEmoji(x.type, x.cat)}</span>
+          <div class="body"><span>${esc(x.memo || x.cat)}</span>${x.memo ? `<span class="cat">${esc(x.cat)}</span>` : ''}</div>
+          <span class="amt ${SIGN[x.type][1]}">${SIGN[x.type][0]}${won(x.amount)}</span>
+          <span class="acts">
+            <button class="icon-btn" type="button" title="고치기" onclick="startMoneyEdit('${x.id}')">✏️</button>
+            <button class="icon-btn" type="button" title="지우기" onclick="removeMoney('${x.id}')">🗑️</button>
+          </span>
+        </div>`;
+    });
+    if (!list) list = money.view === 'all'
+      ? `<div class="empty">이 달에 적은 내역이 없어요. 위에서 첫 기록을 적어 보세요 ✍️</div>`
+      : `<div class="empty">이 달에 이 종류로 적은 내역은 없어요. '전체'를 눌러 모두 볼 수 있어요.</div>`;
+    const viewTab = (v, label) => `<button class="tab ${money.view === v ? 'on' : ''}" type="button" onclick="setMoneyView('${v}')">${label}</button>`;
+
+    const typePick = (v, label) => `<label class="pick"><input type="radio" name="mType" value="${v}" ${money.type === v ? 'checked' : ''} onchange="setMoneyType('${v}')"><span>${label}</span></label>`;
+
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <h2>📔 가계부 다이어리</h2>
+      <div class="sub">들어온 돈 − 고정비 − 용돈 = 남은 돈 → 자유적금 💖</div>
+      <div class="cal-head">
+        <button class="btn" type="button" onclick="moveMoneyMonth(-1)" aria-label="이전 달">◀</button>
+        <b>${money.y}년 ${money.m + 1}월</b>
+        <button class="btn" type="button" onclick="moveMoneyMonth(1)" aria-label="다음 달">▶</button>
+      </div>
+
+      ${flow}
+      ${money.copyOpen ? copyBox() : ''}
+      ${hp}
+
+      <form class="form money-form" onsubmit="submitMoney(event)" autocomplete="off">
+        <div class="full seg">
+          ${typePick('out', '👛 용돈 쓰기')}${typePick('fixed', '🏠 고정비')}${typePick('in', '💰 들어온 돈')}
+          ${editing ? '<b class="memo" style="align-self:center">· 고치는 중</b>' : ''}
+        </div>
+        <input class="amount" type="text" name="mAmount" inputmode="numeric" placeholder="금액 (원)" oninput="formatAmount(this)"
+          value="${editing ? editing.amount.toLocaleString('ko-KR') : ''}" aria-label="금액" required>
+        <input type="date" name="mDate" value="${formDate}" aria-label="날짜" required>
+        <div class="full chips" id="catPicks">${catPicks()}</div>
+        <input class="full" type="text" name="mMemo" maxlength="100" placeholder="메모 (선택) · 예: 점심 김밥, 넷플릭스" value="${editing ? esc(editing.memo) : ''}">
+        <div class="actions">
+          ${editing ? `<button class="btn" type="button" onclick="cancelMoneyEdit()">취소</button>` : ''}
+          <button class="btn primary" type="submit">${editing ? '고친 내용 저장' : '+ 적기'}</button>
+        </div>
+      </form>
+
+      <div class="sec"><h3>📊 용돈 어디에 썼을까?</h3>${stats}</div>
+      <div class="sec">
+        <h3>🧾 내역</h3>
+        <div class="tabs">${viewTab('all', '전체')}${viewTab('in', '💰 들어온 돈')}${viewTab('fixed', '🏠 고정비')}${viewTab('out', '👛 용돈')}</div>
+        ${list}
+      </div>`;
+  }
+
+  function submitMoney(e) {
+    e.preventDefault();
+    const f = e.target.elements;
+    const amount = parseAmount(f.mAmount.value);
+    if (!amount || amount > MAX_WON) { toast('금액을 숫자로 적어 주세요'); f.mAmount.focus(); return; }
+    if (!DATE_RE.test(f.mDate.value)) { toast('날짜를 골라 주세요'); return; }
+    const item = { date: f.mDate.value, type: money.type, amount, cat: money.cat, memo: f.mMemo.value.trim().slice(0, 100) };
+
+    if (money.editId) {
+      const x = DB.money.find(r => r.id === money.editId);
+      if (x) Object.assign(x, item);
+      money.editId = null;
+      if (saveDB()) toast('고친 내용을 저장했어요');
+    } else {
+      DB.money.push({ id: newId(), ...item });
+      gainXP(XP.money);
+      const name = { in: '들어온 돈', fixed: '고정비', out: '용돈' }[item.type];
+      if (saveDB()) toast(`${name} ${won(amount)} 적었어요 📔`);
+    }
+    // 다른 달 날짜로 적었으면 그 달로 넘어가서 보여 줘요
+    const d = parseYmd(item.date);
+    money.y = d.getFullYear(); money.m = d.getMonth();
+    renderMoney();
+    refreshLiving();
+    document.querySelector('.money-form input[name=mAmount]').focus();
+  }
+  function startMoneyEdit(id) {
+    const x = DB.money.find(r => r.id === id);
+    if (!x) return;
+    Object.assign(money, { editId: id, type: x.type, cat: x.cat });
+    renderMoney();
+    document.querySelector('.money-form input[name=mAmount]').focus();
+  }
+  function cancelMoneyEdit() { money.editId = null; renderMoney(); }
+  async function removeMoney(id) {
+    const x = DB.money.find(r => r.id === id);
+    if (!x || !(await askConfirm(`${dateLabel(x.date)} ${x.memo || x.cat} ${won(x.amount)}을 지울까요?`))) return;
+    DB.money = DB.money.filter(r => r.id !== id);
+    gainXP(-XP.money);
+    if (money.editId === id) money.editId = null;
+    if (saveDB()) toast('내역을 지웠어요');
+    renderMoney();
+    refreshLiving();
+  }
+
+  // ---- 여행 (주황 문) ----
+  // 첫 화면: 필수 체크리스트 → 새 여행 만들기 → 내 여행(최근이 위)
+  // 여행 안: 날짜 카드 → 날짜 안: 그날 일정 + 사용 비용
+  const TRIP_CATS = [['숙소', '🏨'], ['교통비', '🚌'], ['식비', '🍜'], ['기념품', '🎁'], ['기타', '📦']];
+  const tripCatEmoji = c => (TRIP_CATS.find(x => x[0] === c) || [, '📦'])[1];
+  const travel = { tripId: null, day: null, costCat: '식비', editId: null, editKind: '', editTrip: false };
+
+  function tripDate(trip, i) { const d = parseYmd(trip.start); d.setDate(d.getDate() + i); return ymd(d); }
+  const shortDate = s => `${+s.slice(5, 7)}/${+s.slice(8)} (${WEEK[parseYmd(s).getDay()]})`;
+  const nightsLabel = n => n === 1 ? '당일치기' : `${n - 1}박 ${n}일`;
+  const sumCost = list => list.reduce((s, c) => s + c.amount, 0);
+  const tripCost = trip => sumCost(trip.costs);
+  function tripStatus(trip) {
+    const today = ymd(new Date());
+    if (today < trip.start) return { text: ddayLabel(trip.start), cls: 'soon' };
+    if (today <= trip.end) return { text: `여행 중 ✈️ ${Math.round((parseYmd(today) - parseYmd(trip.start)) / 86400000) + 1}일차`, cls: 'now' };
+    return { text: '다녀왔어요', cls: 'past' };
+  }
+  const currentTrip = () => DB.trips.find(t => t.id === travel.tripId);
+  // 최근 여행(가는 날이 늦은 여행)이 맨 위
+  const sortedTrips = () => DB.trips.slice().sort((a, b) => b.start.localeCompare(a.start));
+  function catBars(costs) {
+    const total = sumCost(costs);
+    const byCat = {};
+    costs.forEach(c => { byCat[c.cat] = (byCat[c.cat] || 0) + c.amount; });
+    return Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([c, v]) => `
+      <div class="stat"><span>${tripCatEmoji(c)} ${esc(c)}</span>
+        <div class="bar"><i style="width:${Math.max(2, v / total * 100)}%"></i></div>
+        <b>${won(v)} <span class="memo">${Math.round(v / total * 100)}%</span></b></div>`).join('');
+  }
+
+  function openTravel() {
+    if (!currentTrip()) Object.assign(travel, { tripId: null, day: null });
+    Object.assign(travel, { editTrip: false, editId: null });
+    renderTravel();
+    document.getElementById('panelBg').classList.add('open');
+  }
+  function goTravel(tripId, day) {
+    Object.assign(travel, { tripId, day, editId: null, editKind: '', editTrip: false });
+    renderTravel();
+    document.getElementById('panel').scrollTop = 0;
+  }
+  const openTrip = id => goTravel(id, null);
+  const openTripDay = d => goTravel(travel.tripId, d);
+  const backToTrips = () => goTravel(null, null);
+  const backToTrip = () => goTravel(travel.tripId, null);
+  function toggleTripEdit() { travel.editTrip = !travel.editTrip; renderTravel(); }
+  function renderTravel() {
+    const trip = currentTrip();
+    if (!trip) renderTripList();
+    else if (travel.day === null || travel.day >= tripDays(trip)) { travel.day = null; renderTrip(trip); }
+    else renderTripDay(trip, travel.day);
+  }
+
+  // 🎒 필수 체크리스트 (모든 여행에 같이 써요)
+  function packBox() {
+    const list = DB.packList, done = list.filter(p => p.done).length;
+    return `
+      <div class="pack-box">
+        <div class="pack-head">
+          <b>🎒 필수 체크리스트</b>
+          <span class="memo">${list.length ? (done === list.length ? '다 챙겼어요! 🎉' : `${list.length}개 중 ${done}개 챙김`) : ''}</span>
+          ${done ? `<button class="btn mini" type="button" onclick="resetPacks()">체크 모두 풀기</button>` : ''}
+        </div>
+        ${list.length ? `<div class="bar"><i style="width:${Math.round(done / list.length * 100)}%"></i></div>` : ''}
+        <div class="pack-grid">
+          ${list.map(p => `
+            <div class="pack-item ${p.done ? 'done' : ''}">
+              <label><input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePack('${p.id}')"><span>${esc(p.text)}</span></label>
+              <button class="x-btn" type="button" title="빼기" onclick="removePack('${p.id}')">×</button>
+            </div>`).join('')}
+        </div>
+        <form class="form pack-form" onsubmit="submitPack(event)" autocomplete="off">
+          <input type="text" name="pkText" maxlength="30" placeholder="더 챙길 것 (예: 선크림)" required>
+          <button class="btn" type="submit">+ 추가</button>
+        </form>
+      </div>`;
+  }
+  function submitPack(e) {
+    e.preventDefault();
+    const text = e.target.elements.pkText.value.trim().slice(0, 30);
+    if (!text) return;
+    if (DB.packList.some(p => p.text === text)) { toast('이미 있는 항목이에요'); return; }
+    DB.packList.push({ id: newId(), text, done: false });
+    saveDB();
+    renderTravel();
+    document.querySelector('.pack-form input[name=pkText]').focus();
+  }
+  function togglePack(id) {
+    const p = DB.packList.find(x => x.id === id);
+    if (!p) return;
+    p.done = !p.done;
+    saveDB();
+    if (p.done && DB.packList.every(x => x.done)) toast('필수품 다 챙겼어요! 🎉');
+    renderTravel();
+  }
+  async function removePack(id) {
+    const p = DB.packList.find(x => x.id === id);
+    if (!p || !(await askConfirm(`'${p.text}'을(를) 체크리스트에서 뺄까요?`, '빼기'))) return;
+    DB.packList = DB.packList.filter(x => x.id !== id);
+    saveDB();
+    renderTravel();
+  }
+  async function resetPacks() {
+    if (!(await askConfirm('체크를 모두 풀까요?\n새 여행을 준비할 때 처음부터 다시 챙길 수 있어요.', '모두 풀기'))) return;
+    DB.packList.forEach(p => { p.done = false; });
+    if (saveDB()) toast('체크를 모두 풀었어요');
+    renderTravel();
+  }
+
+  // 여행 만들기 · 고치기에 같이 쓰는 칸
+  function tripForm(trip) {
+    return `
+      <form class="form trip-form" onsubmit="${trip ? 'submitTripEdit' : 'submitTrip'}(event)" autocomplete="off">
+        <label class="date-field full"><span>여행 제목</span>
+          <input type="text" name="trName" maxlength="40" placeholder="예: 🍊 제주 여행" value="${trip ? esc(trip.name) : ''}" required></label>
+        <label class="date-field"><span>가는 날</span>
+          <input type="date" name="trStart" value="${trip ? trip.start : ''}" required
+            onchange="if (!this.form.trEnd.value || this.form.trEnd.value < this.value) this.form.trEnd.value = this.value"></label>
+        <label class="date-field"><span>오는 날</span><input type="date" name="trEnd" value="${trip ? trip.end : ''}" required></label>
+        <div class="actions">
+          ${trip ? `<button class="btn" type="button" onclick="toggleTripEdit()">취소</button>` : ''}
+          <button class="btn primary" type="submit">${trip ? '고친 내용 저장' : '+ 여행 만들기'}</button>
+        </div>
+      </form>`;
+  }
+  function readTripForm(f) {
+    const name = f.trName.value.trim(), start = f.trStart.value, end = f.trEnd.value;
+    if (!name) { toast('여행 제목을 적어 주세요'); return null; }
+    if (!DATE_RE.test(start) || !DATE_RE.test(end)) { toast('가는 날과 오는 날을 골라 주세요'); return null; }
+    if (end < start) { toast('오는 날이 가는 날보다 빨라요'); return null; }
+    if (tripDays({ start, end }) > 60) { toast('여행은 60일까지 적을 수 있어요'); return null; }
+    return { name: name.slice(0, 40), start, end };
+  }
+  function submitTrip(e) {
+    e.preventDefault();
+    const v = readTripForm(e.target.elements);
+    if (!v) return;
+    const trip = { id: newId(), ...v, plans: [], packs: [], costs: [] };
+    DB.trips.push(trip);
+    gainXP(XP.trip);
+    if (saveDB()) toast(`'${v.name}' 여행을 만들었어요 ✈️`);
+    openTrip(trip.id);
+    refreshLiving();
+  }
+  function submitTripEdit(e) {
+    e.preventDefault();
+    const trip = currentTrip(), v = readTripForm(e.target.elements);
+    if (!trip || !v) return;
+    Object.assign(trip, v);
+    // 여행이 짧아졌으면 넘치는 날의 일정 · 비용은 마지막 날로 옮겨요
+    const last = tripDays(trip) - 1;
+    trip.plans.forEach(p => { if (p.day > last) p.day = last; });
+    trip.costs.forEach(c => { if (c.day > last) c.day = last; });
+    travel.editTrip = false;
+    if (saveDB()) toast('여행 정보를 고쳤어요');
+    renderTravel();
+    refreshLiving();
+  }
+  async function removeTrip() {
+    const trip = currentTrip();
+    if (!trip || !(await askConfirm(`'${trip.name}' 여행을 지울까요?\n날짜별 일정 · 사용 비용도 모두 지워져요.`, '지우기'))) return;
+    DB.trips = DB.trips.filter(t => t.id !== trip.id);
+    gainXP(-(XP.trip + trip.plans.length * XP.plan + trip.costs.length * XP.cost));
+    if (saveDB()) toast('여행을 지웠어요');
+    backToTrips();
+    refreshLiving();
+  }
+
+  // 첫 화면
+  function renderTripList() {
+    const cards = sortedTrips().map(t => {
+      const s = tripStatus(t);
+      return `
+        <button class="trip-card ${s.cls}" type="button" onclick="openTrip('${t.id}')">
+          <div class="tc-top"><b>${esc(t.name)}</b><span class="dday ${s.cls}">${s.text}</span></div>
+          <div class="memo">${shortDate(t.start)} ~ ${shortDate(t.end)} · ${nightsLabel(tripDays(t))}</div>
+          <div class="tc-meta"><span>🗺️ 일정 ${t.plans.length}개</span><span>💸 ${won(tripCost(t))}</span></div>
+        </button>`;
+    }).join('');
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <h2>✈️ 여행</h2>
+      <div class="sub">필수품 챙기고, 여행을 만들고, 날짜별 일정 · 사용 비용을 적어요</div>
+      ${packBox()}
+      <div class="sec"><h3>✈️ 새 여행 만들기</h3>${tripForm(null)}</div>
+      <div class="sec"><h3>📚 내 여행 ${DB.trips.length}개 <span class="memo">최근 여행이 위에 있어요</span></h3>
+        ${cards || '<div class="empty">아직 여행이 없어요. 위에서 첫 여행을 만들어 보세요 🧳</div>'}</div>`;
+  }
+
+  // 여행 안: 날짜 카드
+  function renderTrip(trip) {
+    const s = tripStatus(trip), total = tripCost(trip);
+    let days = '';
+    for (let i = 0; i < tripDays(trip); i++) {
+      const plans = trip.plans.filter(p => p.day === i).sort(byTime);
+      const cost = sumCost(trip.costs.filter(c => c.day === i));
+      days += `
+        <button class="day-card" type="button" onclick="openTripDay(${i})">
+          <div class="dc-top"><b>${i + 1}일차 일정</b><span class="memo">${shortDate(tripDate(trip, i))}</span><span class="dc-go">열기 ›</span></div>
+          <div class="dc-plans">${plans.length
+            ? plans.slice(0, 3).map(p => `<span>${p.time ? `<b>${p.time}</b> ` : ''}${esc(p.title)}</span>`).join('') + (plans.length > 3 ? `<span class="memo">외 ${plans.length - 3}개</span>` : '')
+            : '<span class="memo">아직 일정이 없어요. 눌러서 적어 보세요</span>'}</div>
+          <div class="tc-meta"><span>🗺️ 일정 ${plans.length}개</span><span>💸 ${won(cost)}</span></div>
+        </button>`;
+    }
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <button class="btn back" type="button" onclick="backToTrips()">← 여행 목록</button>
+      <h2>${esc(trip.name)} <span class="dday ${s.cls}">${s.text}</span></h2>
+      <div class="sub">${shortDate(trip.start)} ~ ${shortDate(trip.end)} · ${nightsLabel(tripDays(trip))}
+        <button class="link-btn" type="button" onclick="toggleTripEdit()">✏️ 제목 · 날짜 고치기</button>
+        <button class="link-btn" type="button" onclick="removeTrip()">🗑️ 여행 지우기</button></div>
+      ${travel.editTrip ? tripForm(trip) : ''}
+      <div class="cost-sum"><span>💸 이 여행에 쓴 돈</span><b>${won(total)}</b></div>
+      ${total ? `<div class="sec">${catBars(trip.costs)}</div>` : ''}
+      <div class="sec"><h3>🗺️ 날짜별 일정 <span class="memo">날짜를 누르면 그날 일정 · 사용 비용을 적어요</span></h3>${days}</div>`;
+  }
+
+  // 날짜 안: 그날 일정 + 사용 비용
+  function renderTripDay(trip, d) {
+    const n = tripDays(trip);
+    const plans = trip.plans.filter(p => p.day === d).sort(byTime);
+    const costs = trip.costs.filter(c => c.day === d);
+    const editPlan = travel.editKind === 'plan' ? trip.plans.find(p => p.id === travel.editId) : null;
+    const editCost = travel.editKind === 'cost' ? trip.costs.find(c => c.id === travel.editId) : null;
+    const cat = editCost ? editCost.cat : travel.costCat;
+
+    const planList = plans.map(p => `
+      <div class="ev">
+        <div class="t">${p.time || '시간 미정'}</div>
+        <div class="body"><div>${esc(p.title)}</div>${p.memo ? `<div class="memo">${esc(p.memo)}</div>` : ''}</div>
+        <button class="icon-btn" type="button" title="고치기" onclick="startTripEdit('plan', '${p.id}', 'plTitle')">✏️</button>
+        <button class="icon-btn" type="button" title="지우기" onclick="removePlan('${p.id}')">🗑️</button>
+      </div>`).join('') || '<div class="empty small">아직 일정이 없어요. 아래에 적어 보세요 ✍️</div>';
+
+    const costList = costs.map(c => `
+      <div class="mrow">
+        <span class="em">${tripCatEmoji(c.cat)}</span>
+        <div class="body"><span>${esc(c.memo || c.cat)}</span>${c.memo ? `<span class="cat">${esc(c.cat)}</span>` : ''}</div>
+        <span class="amt minus">${won(c.amount)}</span>
+        <span class="acts">
+          <button class="icon-btn" type="button" title="고치기" onclick="startTripEdit('cost', '${c.id}', 'cAmount')">✏️</button>
+          <button class="icon-btn" type="button" title="지우기" onclick="removeCost('${c.id}')">🗑️</button>
+        </span>
+      </div>`).join('') || '<div class="empty small">이날 쓴 돈이 아직 없어요.</div>';
+
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <button class="btn back" type="button" onclick="backToTrip()">← ${esc(trip.name)}</button>
+      <div class="cal-head">
+        <button class="btn" type="button" onclick="openTripDay(${d - 1})" ${d === 0 ? 'disabled' : ''} aria-label="전날">◀</button>
+        <div class="day-name"><b>${d + 1}일차 일정</b><span class="memo">${shortDate(tripDate(trip, d))}</span></div>
+        <button class="btn" type="button" onclick="openTripDay(${d + 1})" ${d === n - 1 ? 'disabled' : ''} aria-label="다음 날">▶</button>
+      </div>
+
+      <div class="sec">
+        <h3>🗺️ 일정</h3>
+        ${planList}
+        <form class="form plan-form" onsubmit="submitPlan(event)" autocomplete="off">
+          <input type="time" name="plTime" value="${editPlan ? editPlan.time : ''}" aria-label="시간 (선택)">
+          <input type="text" name="plTitle" maxlength="100" placeholder="어디서 뭐 할까요? (예: 성산일출봉 일출 보기)" value="${editPlan ? esc(editPlan.title) : ''}" required>
+          <input class="full" type="text" name="plMemo" maxlength="300" placeholder="메모 (선택) · 주소, 예약 번호, 링크…" value="${editPlan ? esc(editPlan.memo) : ''}">
+          <div class="actions">
+            ${editPlan ? `<button class="btn" type="button" onclick="cancelTravelEdit()">취소</button>` : ''}
+            <button class="btn primary" type="submit">${editPlan ? '고친 내용 저장' : '+ 일정 추가'}</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="sec">
+        <h3>💸 사용 비용 <span class="memo">이날 ${won(sumCost(costs))}</span></h3>
+        <form class="form cost-form" onsubmit="submitCost(event)" autocomplete="off">
+          <div class="full chips">${TRIP_CATS.map(([c, e]) => `
+            <label class="pick"><input type="radio" name="cCat" value="${c}" ${c === cat ? 'checked' : ''} onchange="travel.costCat = this.value"><span>${e} ${c}</span></label>`).join('')}</div>
+          <input class="amount" type="text" name="cAmount" inputmode="numeric" placeholder="금액 (원)" oninput="formatAmount(this)"
+            value="${editCost ? editCost.amount.toLocaleString('ko-KR') : ''}" aria-label="금액" required>
+          <input type="text" name="cMemo" maxlength="100" placeholder="메모 (선택) · 예: 흑돼지" value="${editCost ? esc(editCost.memo) : ''}">
+          <div class="actions">
+            ${editCost ? `<button class="btn" type="button" onclick="cancelTravelEdit()">취소</button>` : ''}
+            <button class="btn primary" type="submit">${editCost ? '고친 내용 저장' : '+ 비용 적기'}</button>
+          </div>
+        </form>
+        ${costs.length ? `<div class="sec">${catBars(costs)}</div>` : ''}
+        ${costList}
+      </div>`;
+  }
+  function startTripEdit(kind, id, field) {
+    Object.assign(travel, { editKind: kind, editId: id });
+    renderTravel();
+    const input = document.querySelector(`input[name=${field}]`);
+    input.scrollIntoView({ block: 'center' });
+    input.focus();
+  }
+  function cancelTravelEdit() { Object.assign(travel, { editKind: '', editId: null }); renderTravel(); }
+
+  function submitPlan(e) {
+    e.preventDefault();
+    const trip = currentTrip(), f = e.target.elements;
+    if (!trip || travel.day === null) return;
+    const title = f.plTitle.value.trim();
+    if (!title) { toast('일정을 적어 주세요'); return; }
+    const item = { time: TIME_RE.test(f.plTime.value) ? f.plTime.value : '', title, memo: f.plMemo.value.trim().slice(0, 300) };
+    const p = travel.editKind === 'plan' && trip.plans.find(x => x.id === travel.editId);
+    if (p) { Object.assign(p, item); if (saveDB()) toast('고친 내용을 저장했어요'); }
+    else { trip.plans.push({ id: newId(), day: travel.day, ...item }); gainXP(XP.plan); if (saveDB()) toast(`${travel.day + 1}일차 일정을 적었어요 🗺️`); }
+    Object.assign(travel, { editKind: '', editId: null });
+    renderTravel();
+    document.querySelector('.plan-form input[name=plTitle]').focus();
+  }
+  async function removePlan(id) {
+    const trip = currentTrip(), p = trip && trip.plans.find(x => x.id === id);
+    if (!p || !(await askConfirm(`'${p.title}' 일정을 지울까요?`, '지우기'))) return;
+    trip.plans = trip.plans.filter(x => x.id !== id);
+    gainXP(-XP.plan);
+    if (travel.editId === id) Object.assign(travel, { editKind: '', editId: null });
+    if (saveDB()) toast('일정을 지웠어요');
+    renderTravel();
+  }
+  function submitCost(e) {
+    e.preventDefault();
+    const trip = currentTrip(), f = e.target.elements;
+    if (!trip || travel.day === null) return;
+    const amount = parseAmount(f.cAmount.value);
+    if (!amount || amount > MAX_WON) { toast('금액을 숫자로 적어 주세요'); f.cAmount.focus(); return; }
+    const cat = f.cCat.value || '기타';
+    const item = { amount, cat, memo: f.cMemo.value.trim().slice(0, 100) };
+    const c = travel.editKind === 'cost' && trip.costs.find(x => x.id === travel.editId);
+    if (c) { Object.assign(c, item); if (saveDB()) toast('고친 내용을 저장했어요'); }
+    else { trip.costs.push({ id: newId(), day: travel.day, ...item }); gainXP(XP.cost); if (saveDB()) toast(`${cat} ${won(amount)} 적었어요 💸`); }
+    Object.assign(travel, { costCat: cat, editKind: '', editId: null });
+    renderTravel();
+    document.querySelector('.cost-form input[name=cAmount]').focus();
+  }
+  async function removeCost(id) {
+    const trip = currentTrip(), c = trip && trip.costs.find(x => x.id === id);
+    if (!c || !(await askConfirm(`${c.memo || c.cat} ${won(c.amount)}을 지울까요?`, '지우기'))) return;
+    trip.costs = trip.costs.filter(x => x.id !== id);
+    gainXP(-XP.cost);
+    if (travel.editId === id) Object.assign(travel, { editKind: '', editId: null });
+    if (saveDB()) toast('비용을 지웠어요');
+    renderTravel();
+  }
+  // 거실 · 푸딩이 쓰는 다음 여행 (여행 중이면 그 여행)
+  function nextTrip() {
+    const today = ymd(new Date());
+    return DB.trips.filter(t => t.end >= today).sort((a, b) => a.start.localeCompare(b.start))[0] || null;
+  }
+
+  // ---- 백업 (⚙️) ----
+  const BACKUP_APP = 'my-home';
+  // 가져오기 전 기록은 이 브라우저에 사람별로 잠깐 보관하고, 나가기 하면 지워요
+  let BEFORE_IMPORT_KEY = STORE_KEY + ':before-import';
+  const daysSince = date => Math.round((parseYmd(ymd(new Date())) - parseYmd(date)) / 86400000);
+  function dataCounts(db) {
+    return [
+      ['🗓️ 일정', db.schedules.length], ['💼 할 일', db.tasks.length],
+      ['📔 가계부 내역', db.money.length], ['✈️ 여행', db.trips.length],
+    ];
+  }
+  const hasRecords = db => dataCounts(db).some(([, n]) => n > 0);
+
+  function openBackup() { renderBackup(); document.getElementById('panelBg').classList.add('open'); }
+  function renderBackup() {
+    const last = DB.lastBackup;
+    const lastText = !last ? '아직 백업한 적 없어요'
+      : `${shortDate(last)} · ${daysSince(last) === 0 ? '오늘' : daysSince(last) + '일 전'}`;
+    let before = null;
+    try { before = localStorage.getItem(BEFORE_IMPORT_KEY); } catch (e) {}
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <h2>⚙️ 설정 · 백업</h2>
+      <div class="sub">기록은 온라인 저장소(Supabase)에 저장돼요. 같은 동네 사람에게는 일정 '있음' · 여행 중 · 레벨 · 가구만 보여요. 그래도 가끔 파일로 내보내 두세요.</div>
+
+      <div class="backup-box">
+        <div class="bk-row"><span>👤 ${esc(MY_PROFILE ? MY_PROFILE.name : '')}</span><b class="memo">${esc(ME ? ME.email : '')}</b></div>
+        <button class="btn bk-btn" type="button" onclick="logout()">🚪 나가기 (로그아웃)</button>
+        <div class="memo">여러 사람이 같이 쓰는 컴퓨터라면 다 쓰고 꼭 나가기를 눌러 주세요.</div>
+      </div>
+      <div class="memo" style="margin-top:12px">💡 예전에 이 컴퓨터에서 쓰던 푸딩이네 기록은, 그 앱의 ⚙️에서 내보낸 백업 파일을 아래 '가져오기'로 옮기면 돼요.</div>
+
+      <div class="backup-box">
+        <div class="bk-row"><span>💾 마지막 백업</span><b class="${!last || daysSince(last) >= 7 ? 'minus' : ''}">${lastText}</b></div>
+        <div class="bk-counts">${dataCounts(DB).map(([k, n]) => `<span>${k} <b>${n}</b></span>`).join('')}</div>
+      </div>
+
+      <div class="sec">
+        <h3>📤 백업 파일로 내보내기</h3>
+        <div class="memo">모든 기록을 파일 하나로 저장해요. 파일은 보통 '다운로드' 폴더에 들어가요. 구글 드라이브 같은 곳에 복사해 두면 더 안전해요.</div>
+        <button class="btn primary bk-btn" type="button" onclick="exportBackup()">📤 지금 내보내기</button>
+      </div>
+
+      <div class="sec">
+        <h3>📥 백업 파일 가져오기</h3>
+        <div class="memo">내보냈던 파일을 고르면 무엇이 들어 있는지 먼저 보여 줘요. 확인을 눌러야 바뀌어요.</div>
+        <input type="file" id="backupFile" accept=".json,application/json" hidden onchange="importBackup(this)">
+        <button class="btn bk-btn" type="button" onclick="document.getElementById('backupFile').click()">📥 파일 고르기</button>
+      </div>
+
+      ${before ? `
+      <div class="sec">
+        <h3>↩️ 가져오기 전으로 되돌리기</h3>
+        <div class="memo">마지막으로 백업을 가져오기 직전의 기록을 보관해 두었어요.</div>
+        <button class="btn bk-btn" type="button" onclick="undoImport()">↩️ 가져오기 전 기록으로 되돌리기</button>
+      </div>` : ''}`;
+  }
+
+  function exportBackup() {
+    const today = ymd(new Date());
+    DB.lastBackup = today;
+    const file = JSON.stringify({ app: BACKUP_APP, version: 1, exportedAt: new Date().toISOString(), data: DB }, null, 2);
+    const url = URL.createObjectURL(new Blob([file], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `나만의집-백업-${today}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (saveDB()) toast('백업 파일을 저장했어요 💾 다운로드 폴더를 확인해 보세요');
+    renderBackup();
+    refreshLiving();
+  }
+
+  // 가져오기: 파일 읽기 → 형식 검사 → 무엇이 들었는지 보여 주기 → 확인하면 바꾸기
+  async function importBackup(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast('파일이 너무 커요. 이 앱의 백업 파일이 맞는지 확인해 주세요'); return; }
+    let parsed;
+    try { parsed = JSON.parse(await file.text()); }
+    catch (e) { toast('파일을 읽을 수 없어요. 이 앱에서 내보낸 백업 파일을 골라 주세요'); return; }
+    const raw = parsed && parsed.app === BACKUP_APP && parsed.data ? parsed.data : null;
+    if (!raw || typeof raw !== 'object') { toast('나만의 집 백업 파일이 아니에요'); return; }
+
+    const next = normalize(raw);
+    if (!hasRecords(next)) { toast('이 백업 파일에는 기록이 없어요'); return; }
+    const when = typeof parsed.exportedAt === 'string' && DATE_RE.test(parsed.exportedAt.slice(0, 10)) ? shortDate(parsed.exportedAt.slice(0, 10)) : '날짜 모름';
+    const summary = dataCounts(next).map(([k, n]) => `${k} ${n}개`).join('\n');
+    const ok = await askConfirm(`${when}에 만든 백업이에요.\n\n${summary}\n\n지금 기록을 이 백업으로 바꿀까요?\n(지금 기록은 따로 보관해 둬서 되돌릴 수 있어요)`, '바꾸기');
+    if (!ok) return;
+
+    try { localStorage.setItem(BEFORE_IMPORT_KEY, JSON.stringify(DB)); }
+    catch (e) { toast('지금 기록을 보관하지 못해서 가져오기를 멈췄어요'); return; }
+    DB = next;
+    if (saveDB()) toast('백업을 가져왔어요 📥');
+    renderBackup();
+    refreshLiving();
+  }
+  async function undoImport() {
+    let raw = null;
+    try { raw = localStorage.getItem(BEFORE_IMPORT_KEY); } catch (e) {}
+    if (!raw) return;
+    let prev;
+    try { prev = normalize(JSON.parse(raw)); } catch (e) { toast('보관한 기록을 읽을 수 없어요'); return; }
+    if (!(await askConfirm(`가져오기 전 기록으로 되돌릴까요?\n\n${dataCounts(prev).map(([k, n]) => `${k} ${n}개`).join('\n')}`, '되돌리기'))) return;
+    DB = prev;
+    try { localStorage.removeItem(BEFORE_IMPORT_KEY); } catch (e) {}
+    if (saveDB()) toast('가져오기 전 기록으로 되돌렸어요 ↩️');
+    renderBackup();
+    refreshLiving();
+  }
+
+  // ---- 🛋️ 가구 상점 ----
+  const haveXP = () => DB.xp.total - DB.xp.spent;
+  const shop = { tab: 'all' };
+  function openShop() { renderShop(); document.getElementById('panelBg').classList.add('open'); }
+  function setShopTab(t) { shop.tab = t; renderShop(); }
+  // 같은 slot(예: 머리)의 다른 가구는 치우고 이걸 놓아요
+  function placeItem(id) {
+    const it = FURNITURE.find(x => x.id === id);
+    const f = DB.furniture;
+    if (it.slot) f.placed = f.placed.filter(p => (FURNITURE.find(x => x.id === p) || {}).slot !== it.slot);
+    if (!f.placed.includes(id)) f.placed.push(id);
+  }
+  function renderShop() {
+    const { lv } = levelInfo(DB.xp.total);
+    const list = FURNITURE.filter(it => shop.tab === 'all' || it.place === shop.tab);
+    const tabs = SHOP_TABS.map(([v, label]) => {
+      const n = FURNITURE.filter(it => (v === 'all' || it.place === v) && DB.furniture.owned.includes(it.id)).length;
+      const total = FURNITURE.filter(it => v === 'all' || it.place === v).length;
+      return `<button class="tab ${shop.tab === v ? 'on' : ''}" type="button" onclick="setShopTab('${v}')">${label} <span class="memo">${n}/${total}</span></button>`;
+    }).join('');
+    const cards = list.map(it => {
+      const owned = DB.furniture.owned.includes(it.id), placed = DB.furniture.placed.includes(it.id);
+      let action;
+      if (owned) {
+        action = `<button class="btn ${placed ? '' : 'primary'}" type="button" onclick="togglePlace('${it.id}')">${placed ? '치우기' : '거실에 놓기'}</button>`;
+      } else if (lv < it.lv) {
+        action = `<button class="btn" type="button" disabled>🔒 Lv.${it.lv}부터</button>`;
+      } else if (haveXP() < it.price) {
+        action = `<button class="btn" type="button" disabled>XP ${it.price - haveXP()} 더 필요</button>`;
+      } else {
+        action = `<button class="btn primary" type="button" onclick="buyFurniture('${it.id}')">${it.price} XP로 사기</button>`;
+      }
+      return `
+        <div class="shop-card ${owned ? 'owned' : ''} ${!owned && lv < it.lv ? 'locked' : ''}">
+          <div class="sc-emoji">${it.emoji}</div>
+          <b>${it.name}</b>
+          <div class="memo">${it.desc}${it.slot ? ' · 머리에는 하나만 써요' : ''}</div>
+          <div class="sc-price">${owned ? (placed ? '✔ 거실에 있어요' : '갖고 있어요') : `⭐ ${it.price} XP · Lv.${it.lv}`}</div>
+          ${action}
+        </div>`;
+    }).join('');
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <h2>🛋️ 가구 상점</h2>
+      <div class="sub">기록해서 모은 XP로 가구를 사서 거실을 꾸며요. 산 가구는 언제든 치웠다가 다시 놓을 수 있어요.</div>
+      <div class="cost-sum"><span>⭐ 가진 XP <span class="memo">Lv.${lv}</span></span><b class="xp-have">${haveXP()} XP</b></div>
+      <div class="tabs" style="margin-top:12px">${tabs}</div>
+      <div class="shop-grid">${cards}</div>`;
+  }
+  async function buyFurniture(id) {
+    const it = FURNITURE.find(x => x.id === id);
+    if (!it || DB.furniture.owned.includes(id) || haveXP() < it.price || levelInfo(DB.xp.total).lv < it.lv) return;
+    if (!(await askConfirm(`${it.emoji} ${it.name}을(를) ${it.price} XP로 살까요?\n사면 바로 거실에 놓아요.`, '사기'))) return;
+    DB.xp.spent += it.price;
+    DB.furniture.owned.push(id);
+    placeItem(id);
+    if (saveDB()) toast(`${it.emoji} ${it.name}을(를) 거실에 놓았어요!`);
+    document.getElementById('bubbleText').textContent = `와 ${it.name}! 고마워 🍮`.slice(0, 19);
+    renderShop();
+    refreshLiving();
+  }
+  function togglePlace(id) {
+    const f = DB.furniture;
+    if (!f.owned.includes(id)) return;
+    if (f.placed.includes(id)) f.placed = f.placed.filter(x => x !== id);
+    else placeItem(id);
+    saveDB();
+    renderShop();
+    refreshLiving();
+  }
+  // 거실 그림에 놓은 가구만 보여 줘요
+  function applyFurniture() {
+    const placed = DB.furniture.placed;
+    FURNITURE.forEach(it => {
+      const el = document.getElementById('f-' + it.id);
+      if (el) el.style.display = placed.includes(it.id) ? '' : 'none';
+    });
+    document.getElementById('catPos').setAttribute('transform', placed.includes('sofa') ? 'translate(624 398)' : 'translate(640 468)');
+    const red = placed.includes('scarf');
+    document.getElementById('scarf1').setAttribute('fill', red ? '#E8505B' : '#7CC9B5');
+    document.getElementById('scarf2').setAttribute('fill', red ? '#C93C47' : '#6AB8A4');
+    const rainbow = placed.includes('rainbow');
+    [['rug1', '#F7B3C2', '#C9B8E8'], ['rug2', '#FFF0E4', '#A6D8F0'], ['rug3', '#FBCDB6', '#FFE68A']]
+      .forEach(([rid, base, rb]) => document.getElementById(rid).setAttribute('fill', rainbow ? rb : base));
+  }
+
+  // ---- XP 받는 법 (레벨 바를 누르면) ----
+  function openXP() {
+    const { lv, cur, need } = levelInfo(DB.xp.total);
+    const rules = [
+      ['🗓️ 일정 적기', XP.schedule], ['💼 할 일 적기', XP.task], ['✅ 할 일 끝내기', XP.taskDone],
+      ['📔 가계부 적기', XP.money], ['✈️ 여행 만들기', XP.trip], ['🗺️ 여행 일정 적기', XP.plan], ['💸 여행 비용 적기', XP.cost],
+    ];
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <h2>⭐ Lv.${lv} ${esc(houseName())}</h2>
+      <div class="sub">기록할수록 XP가 쌓이고 집이 자라요</div>
+      <div class="hp">
+        <div class="top"><span class="label">다음 레벨까지 ${need - cur} XP</span><span class="memo">Lv.${lv + 1}이 되려면 ${need} XP 중 ${cur} XP</span></div>
+        <div class="bar"><i style="width:${Math.round(cur / need * 100)}%"></i></div>
+        <div class="hint">지금까지 모은 XP ${DB.xp.total} · 가진 XP ${DB.xp.total - DB.xp.spent} (가구 상점에서 써요)</div>
+      </div>
+      <div class="sec xp-rules">
+        <h3>XP 받는 법</h3>
+        ${rules.map(([k, v]) => `<div class="row"><span>${k}</span><b>+${v} XP</b></div>`).join('')}
+        <div class="memo" style="margin-top:8px">기록을 지우면 받았던 XP도 돌려줘요. 끝낸 할 일의 체크를 풀어도 마찬가지예요.</div>
+      </div>`;
+    document.getElementById('panelBg').classList.add('open');
+  }
+
+  // ---- 오늘판: 오늘 일정 · 오늘까지 할 업무 · 내일 미리 보기를 한 화면에 ----
+  function renderTodayBoard() {
+    const today = ymd(new Date());
+    const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
+    const tomorrow = ymd(tmr);
+    const MAX = 5;
+    const schedRow = s => `<div class="row" onclick="openPanel('schedule')"><span class="tag">${s.time || '하루'}</span><span class="t">${esc(s.title)}</span></div>`;
+    const taskRow = t => {
+      const d = dueInfo(t.due);
+      return `<div class="row" onclick="openPanel('work')"><span class="t">${t.urgent ? '🔥 ' : ''}${esc(t.title)}</span><span class="tag ${d.cls}">${d.text}</span></div>`;
+    };
+    const col = (title, rows, emptyText) => `
+      <div class="col">
+        <h4><span>${title}</span><span class="n">${rows.length}</span></h4>
+        ${rows.slice(0, MAX).join('') || `<div class="none">${emptyText}</div>`}
+        ${rows.length > MAX ? `<div class="more">+${rows.length - MAX}개 더</div>` : ''}
+      </div>`;
+    const todo = DB.tasks.filter(t => !t.done && t.due);
+    const dueNow = todo.filter(t => t.due <= today).sort(byDue).map(taskRow);
+    const next = schedulesOn(tomorrow).map(schedRow).concat(todo.filter(t => t.due === tomorrow).sort(byDue).map(taskRow));
+    const workCol = VISIT
+      ? `<div class="col locked"><h4><span>💼 업무</span><span class="n">🔒</span></h4><div class="none">🔒 ${esc(VISIT.name)}님만 볼 수 있어요</div></div>`
+      : col('💼 오늘까지 할 업무', dueNow, '급한 마감이 없어요 🎉');
+    document.getElementById('todayBoard').innerHTML =
+      col('🗓️ 오늘 일정', schedulesOn(today).map(schedRow), '오늘은 일정이 없어요')
+      + workCol
+      + col('🌙 내일 미리 보기', next, '내일은 아직 비어 있어요');
+  }
+
+  // ---- 거실에 오늘 기록 보여 주기 ----
+  function refreshLiving() {
+    refreshHUD();
+    applyFurniture();
+    const n = schedulesOn(ymd(new Date())).length;
+    document.getElementById('todaySched').textContent = n + '개';
+    document.getElementById('calBadge').style.display = n ? '' : 'none';
+    document.getElementById('calBadgeN').textContent = n;
+
+    const todo = DB.tasks.filter(t => !t.done);
+    const next = todo.filter(t => t.due).sort(byDue)[0];
+    document.getElementById('todayWork').textContent = todo.length + '개' + (next ? ' · ' + dueInfo(next.due).text : '');
+    const hot = urgentTasks().length;
+    document.getElementById('workBadge').style.display = hot ? '' : 'none';
+    document.getElementById('workBadgeN').textContent = hot;
+    renderTodayBoard();
+
+    const { outSum, allowance } = monthTotals(ymd(new Date()).slice(0, 7));
+    const remain = allowance - outSum;
+    document.getElementById('moneyLabel').textContent = allowance ? '👛 남은 용돈' : '👛 이번 달 쓴 용돈';
+    document.getElementById('todayMoney').textContent = !allowance ? won(outSum) : remain < 0 ? won(-remain) + ' 넘음' : won(remain);
+
+    const trip = nextTrip();
+    const short = s => s.length > 8 ? s.slice(0, 7) + '…' : s;
+    document.getElementById('todayTravel').textContent = !trip ? '계획 없음'
+      : ymd(new Date()) >= trip.start ? `${short(trip.name)} 여행 중` : `${short(trip.name)} ${ddayLabel(trip.start)}`;
+    if (VISIT) applyVisitView();
+  }
+
+  // ---- 아직 기능을 붙이지 않은 공간 (가짜 데이터) ----
+  function openPanel(key) {
+    document.getElementById('panel').classList.add('square');
+    if (VISIT) {
+      if (key === 'schedule') { openVisitSchedule(); return; }
+      toast(`🔒 ${VISIT.name}님만 볼 수 있어요`);
+      return;
+    }
+    if (key === 'schedule') { openSchedule(); return; }
+    if (key === 'work') { openWork(); return; }
+    if (key === 'money') { openMoney(); return; }
+    if (key === 'travel') { openTravel(); return; }
+    if (key === 'settings') { openBackup(); return; }
+    if (key === 'xp') { openXP(); return; }
+    if (key === 'shop') { openShop(); return; }
+  }
+  function closePanel() { document.getElementById('panelBg').classList.remove('open'); }
+
+  // 창 아래에 내용이 더 있으면 "▼ 아래에 더 있어요"를 보여 줘요
+  function updateMoreHint() {
+    const bg = document.getElementById('panelBg'), p = document.getElementById('panel'), hint = document.getElementById('moreHint');
+    const isOpen = bg.classList.contains('open');
+    document.body.classList.toggle('modal-open', isOpen);
+    const more = isOpen && p.scrollHeight - p.scrollTop - p.clientHeight > 24;
+    hint.style.display = more ? 'block' : 'none';
+    if (!more) return;
+    const r = p.getBoundingClientRect();
+    hint.style.left = (r.left + r.width / 2) + 'px';
+    hint.style.top = (r.bottom - 46) + 'px';
+  }
+  document.getElementById('moreHint').onclick = () => {
+    const p = document.getElementById('panel');
+    p.scrollBy({ top: p.clientHeight * 0.7, behavior: 'smooth' });
+  };
+  document.getElementById('panel').addEventListener('scroll', updateMoreHint);
+  window.addEventListener('resize', updateMoreHint);
+  // 창이 열리고 닫힐 때, 창 안 내용이 바뀔 때 다시 계산해요 (안내 버튼 자체의 변화는 보지 않아요)
+  const hintObserver = new MutationObserver(() => requestAnimationFrame(updateMoreHint));
+  hintObserver.observe(document.getElementById('panelBg'), { attributes: true, attributeFilter: ['class'] });
+  hintObserver.observe(document.getElementById('panel'), { childList: true, subtree: true });
+  document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (dlgDone) dlgDone(null); else closePanel(); });
+
+  // ---- 푸딩 말풍선 ----
+  const LINES = ['어서 와! 오늘은 뭘 적어 볼까?', '달력을 누르면 일정을 볼 수 있어', '다이어리에 오늘 쓴 돈 적었어?', '기록하면 XP가 쌓여! 🍮', '문 너머에 여행 준비가 있어 ✈️'];
+  // 오늘 기록에 맞춘 대사 (급한 것부터)
+  function todayLines() {
+    const lines = [];
+    const hot = urgentTasks().length;
+    if (hot) lines.push(`오늘까지 할 업무가 ${hot}개 있어!`);
+    const items = schedulesOn(ymd(new Date()));
+    if (items.length === 1) lines.push(`오늘은 '${items[0].title}' 있는 날!`);
+    else if (items.length > 1) lines.push(`오늘 일정 ${items.length}개! 달력 눌러 봐`);
+    const trip = nextTrip();
+    if (trip && ymd(new Date()) >= trip.start) lines.push('여행 즐겁게 다녀와! ✈️');
+    else if (trip && (parseYmd(trip.start) - parseYmd(ymd(new Date()))) / 86400000 <= 7) {
+      const left = DB.packList.filter(p => !p.done).length;
+      lines.push(left ? `여행 ${ddayLabel(trip.start)}! 준비물 ${left}개 남았어` : `여행 ${ddayLabel(trip.start)}! 두근두근 🧳`);
+    }
+    if (hasRecords(DB) && (!DB.lastBackup || daysSince(DB.lastBackup) >= 7)) {
+      lines.push(DB.lastBackup ? '백업한 지 일주일 넘었어 💾' : '⚙️ 눌러서 백업해 두자 💾');
+    }
+    const { allowance, outSum } = monthTotals(ymd(new Date()).slice(0, 7));
+    if (allowance && outSum >= allowance) lines.push('이번 달 용돈을 다 썼어 😢');
+    else if (allowance && outSum >= allowance * 0.8) lines.push('용돈이 20%도 안 남았어!');
+    return lines;
+  }
+  const todayLine = () => todayLines()[0] || null;
+  function sayRandom() {
+    const t = document.getElementById('bubbleText');
+    const { cur, need } = levelInfo(DB.xp.total);
+    const pool = VISIT ? VISIT_LINES() : LINES.concat(todayLines(), `다음 레벨까지 ${need - cur} XP!`);
+    let next; do { next = pool[Math.floor(Math.random() * pool.length)]; } while (next === t.textContent);
+    t.textContent = next.length > 19 ? next.slice(0, 18) + '…' : next;
+  }
+
+  // ---- 시간 · 계절 (주소 뒤에 ?time=night&season=winter 를 붙이면 미리보기) ----
+  const q = new URLSearchParams(location.search);
+  // 새벽 5~7시 · 낮 7~17시 · 저녁 17~19시 · 밤 19~5시
+  function timeOfDay(h) { return h >= 5 && h < 7 ? 'dawn' : h >= 7 && h < 17 ? 'day' : h >= 17 && h < 19 ? 'evening' : 'night'; }
+  const PART = { dawn: '새벽', day: '낮', evening: '저녁', night: '밤' };
+  const PREVIEW_HOUR = { dawn: 6, day: 12, evening: 18, night: 22 };
+  function seasonOf(m) { return m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter'; }
+
+  const SKY = { dawn: ['#B9A6E0', '#FFD1C2'], day: ['#9ED8F5', '#DFF3FB'], evening: ['#F59E7A', '#FBD9A0'], night: ['#1E2B52', '#3B4C80'] };
+  const TREE = { spring: '#F7B8C8', summer: '#4FAE55', autumn: '#E8913C', winter: '#E9F1F5' };
+  const HILL = { spring: '#9AD38A', summer: '#6DBE6A', autumn: '#C9A45A', winter: '#F4F8FA' };
+  function paint() {
+    const now = new Date();
+    const tod = q.get('time') || timeOfDay(now.getHours());
+    const season = q.get('season') || seasonOf(now.getMonth() + 1);
+    const $ = id => document.getElementById(id);
+
+    $('skyTop').setAttribute('stop-color', SKY[tod][0]);
+    $('skyBottom').setAttribute('stop-color', SKY[tod][1]);
+    // 해는 5시에 왼쪽 아래에서 떠서 19시에 오른쪽 아래로 져요
+    const hour = q.get('time') ? PREVIEW_HOUR[tod] : now.getHours() + now.getMinutes() / 60;
+    const p = Math.min(1, Math.max(0, (hour - 5) / 14));
+    $('sun').style.display = tod === 'night' ? 'none' : '';
+    $('sun').setAttribute('cx', 72 + p * 156);
+    $('sun').setAttribute('cy', 175 - Math.sin(p * Math.PI) * 95);
+    $('sun').setAttribute('fill', tod === 'day' ? '#FFD95A' : '#FF9A5A');
+    $('clouds').style.display = tod === 'night' ? 'none' : '';
+    $('clouds').setAttribute('fill', tod === 'day' ? '#FFFFFF' : '#FFE1D6');
+    $('moon').style.display = tod === 'night' ? '' : 'none';
+    $('moonCut').setAttribute('fill', SKY.night[0]);
+    $('stars').style.display = tod === 'night' ? '' : 'none';
+    $('nightShade').setAttribute('opacity', tod === 'night' ? .22 : tod === 'day' ? 0 : .08);
+    $('glow').style.display = tod === 'day' ? 'none' : '';
+
+    $('treeTop').setAttribute('fill', TREE[season]);
+    $('hill').setAttribute('fill', HILL[season]);
+    $('petals').style.display = season === 'spring' ? '' : 'none';
+    $('snow').style.display = season === 'winter' ? '' : 'none';
+    $('lights').style.display = (q.get('xmas') === '1' || now.getMonth() === 11) ? '' : 'none';
+
+    $('calMonth').textContent = (now.getMonth() + 1) + '월';
+    $('calDay').textContent = now.getDate();
+    $('calWeek').textContent = WEEK[now.getDay()] + '요일';
+
+    $('clockTime').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    $('clockPart').textContent = PART[timeOfDay(now.getHours())];
+  }
+  // ---- 동네: 문패에 올리는 공개 정보 ----
+  // 같은 동네 사람에게는 이것만 보여요: 레벨 · 놓은 가구 · 앞으로 60일 일정의 날짜와 시간(제목 없음) · 여행 중인지
+  function publicData(db) {
+    const today = ymd(new Date());
+    const until = new Date(); until.setDate(until.getDate() + 60);
+    const end = ymd(until);
+    const busy = db.schedules.filter(s => s.date >= today && s.date <= end)
+      .sort((a, b) => a.date.localeCompare(b.date) || byTime(a, b)).slice(0, 200)
+      .map(s => ({ d: s.date, t: s.time }));
+    const trip = db.trips.filter(t => t.end >= today).sort((a, b) => a.start.localeCompare(b.start))[0];
+    let tr = null;
+    if (trip && trip.start <= today) tr = { s: 'now' };
+    else if (trip) {
+      const n = Math.round((parseYmd(trip.start) - parseYmd(today)) / 86400000);
+      if (n <= 60) tr = { s: 'soon', d: n };
+    }
+    return { lv: levelInfo(db.xp.total).lv, furn: db.furniture.placed.slice(0, 40), busy, trip: tr };
+  }
+  // 문패는 다른 사람이 쓴 것이라 하나씩 검사해서 써요
+  function readPublic(p) {
+    const pd = p && p.public_data && typeof p.public_data === 'object' ? p.public_data : {};
+    const today = ymd(new Date());
+    const lv = Number.isInteger(pd.lv) && pd.lv > 0 && pd.lv < 1000 ? pd.lv : 1;
+    const busy = Array.isArray(pd.busy) ? pd.busy.filter(b => b && typeof b.d === 'string' && DATE_RE.test(b.d) && b.d >= today
+      && typeof b.t === 'string' && (b.t === '' || TIME_RE.test(b.t))).slice(0, 200) : [];
+    const furn = Array.isArray(pd.furn) ? pd.furn.filter(id => FURNITURE.some(it => it.id === id)) : [];
+    const tr = pd.trip && (pd.trip.s === 'now' || (pd.trip.s === 'soon' && Number.isInteger(pd.trip.d) && pd.trip.d >= 0 && pd.trip.d <= 60)) ? pd.trip : null;
+    return { lv, busy, furn, trip: tr };
+  }
+  const tripText = tr => !tr ? '' : tr.s === 'now' ? '✈️ 여행 중' : tr.d === 0 ? '✈️ 오늘 여행 출발' : `✈️ D-${tr.d} 여행 예정`;
+  function xpForLevel(lv) { let t = 0; for (let i = 1; i < lv; i++) t += 50 + (i - 1) * 25; return t; }
+
+  // 놀러 간 집: 문패 정보만으로 거실을 꾸며요 (일정은 '일정 있음'으로만)
+  function visitDB(p) {
+    const pub = readPublic(p);
+    return normalize({
+      schedules: pub.busy.map((b, i) => ({ id: 'b' + i, date: b.d, time: b.t, title: '일정 있음', memo: '' })),
+      xp: { total: xpForLevel(pub.lv), spent: 0 },
+      furniture: { owned: pub.furn, placed: pub.furn },
+    });
+  }
+  function applyVisitView() {
+    const $ = id => document.getElementById(id);
+    $('todayWork').textContent = '🔒 잠김';
+    $('workBadge').style.display = 'none';
+    $('moneyLabel').textContent = '📔 가계부';
+    $('todayMoney').textContent = '🔒 잠김';
+    $('todayTravel').textContent = tripText(readPublic(VISIT).trip).replace('✈️ ', '') || '계획 없음';
+  }
+  const VISIT_LINES = () => [`${homeOf(VISIT.name)}에 온 걸 환영해!`, '천천히 구경하고 가 🍮', '업무랑 가계부는 비밀이야 🤫', '달력엔 일정 있음만 보여!'];
+  function openVisitSchedule() {
+    const groups = {};
+    DB.schedules.forEach(s => { (groups[s.date] = groups[s.date] || []).push(s); });
+    const days = Object.keys(groups).sort().slice(0, 30);
+    document.getElementById('panel').innerHTML = `
+      <button class="close" type="button" onclick="closePanel()">거실로 ←</button>
+      <h2>🗓️ ${esc(VISIT.name)}님의 일정</h2>
+      <div class="sub">언제 일정이 있는지만 보여요. 무슨 일정인지는 ${esc(VISIT.name)}님만 알아요.</div>
+      ${days.map(d => `
+        <div class="day-head"><span>${dateLabel(d)}</span><span>${groups[d].length}개</span></div>
+        ${groups[d].sort(byTime).map(s => `<div class="mrow"><span class="em">🔒</span><div class="body">${s.time || '하루 종일'} · 일정 있음</div></div>`).join('')}`).join('')
+        || `<div class="empty">앞으로 60일 동안 일정이 없어요.</div>`}`;
+    document.getElementById('panelBg').classList.add('open');
+  }
+
+  // ---- 로그인 · 로비 화면 ----
+  const gate = document.getElementById('gate');
+  let LOBBY = [], HOOD_NAME = '', authTab = 'login';
+  function showGate(html) { closePanel(); gate.innerHTML = html; gate.classList.add('open'); gate.scrollTop = 0; }
+  function hideGate() { gate.classList.remove('open'); }
+  const gateErr = msg => { const el = document.getElementById('gateErr'); if (el) el.textContent = msg; };
+  const busyBtn = (on) => gate.querySelectorAll('button').forEach(b => { b.disabled = on; });
+
+  // Supabase 오류를 쉬운 말로
+  function friendly(e) {
+    const m = String((e && (e.message || e.code)) || e || '');
+    if (/invalid login credentials/i.test(m)) return '이메일이나 비밀번호가 맞지 않아요';
+    if (/already registered|already exists/i.test(m)) return '이미 가입한 이메일이에요. 들어가기 탭에서 들어와 주세요';
+    if (/bad_code/.test(m)) return '동네 코드가 맞지 않아요';
+    if (/email.*invalid|invalid.*email/i.test(m)) return '이메일 모양이 맞지 않아요';
+    if (/password/i.test(m) && /least|short|weak/i.test(m)) return '비밀번호는 8자 이상으로 정해 주세요';
+    if (/not confirmed/i.test(m)) return "Supabase에서 'Confirm email'을 꺼 주세요";
+    if (/fetch|network/i.test(m)) return '인터넷 연결을 확인해 주세요';
+    if (/rate limit/i.test(m)) return '너무 여러 번 시도했어요. 잠시 뒤에 다시 해 주세요';
+    return '문제가 생겼어요: ' + m.slice(0, 80);
+  }
+
+  function showConfigGate() {
+    showGate(`<div class="gate-box"><h1>🍮 푸딩이네 동네</h1>
+      <div class="sub">아직 저장소가 연결되지 않았어요.</div>
+      <div class="memo">my-home 폴더의 <b>config.js</b>에 Supabase 주소와 공개용 키를 넣어 주세요. (배포한 링크라면 넣고 다시 배포해요)</div></div>`);
+  }
+  function showAuth(tab) {
+    authTab = tab || authTab;
+    const signup = authTab === 'signup';
+    showGate(`<div class="gate-box">
+      <h1>🍮 푸딩이네 동네</h1>
+      <div class="sub">${signup ? '동네 코드를 받은 사람만 이사 올 수 있어요' : '내 집으로 들어가요'}</div>
+      <div class="tabs">
+        <button class="tab ${signup ? '' : 'on'}" type="button" onclick="showAuth('login')">들어가기</button>
+        <button class="tab ${signup ? 'on' : ''}" type="button" onclick="showAuth('signup')">이사 오기 (가입)</button>
+      </div>
+      <form onsubmit="${signup ? 'doSignup' : 'doLogin'}(event)" autocomplete="on">
+        <label>이메일<input type="email" name="email" required maxlength="100" autocomplete="email" autocapitalize="none" autocorrect="off"></label>
+        <label>비밀번호 <span class="memo">8자 이상</span><input type="password" name="pw" required minlength="8" maxlength="72" autocomplete="${signup ? 'new-password' : 'current-password'}"></label>
+        ${signup ? `
+        <label>비밀번호 한 번 더<input type="password" name="pw2" required minlength="8" maxlength="72" autocomplete="new-password"></label>
+        <label>집 이름 <span class="memo">로비에 'OO네 집'으로 보여요 · 12자까지</span><input type="text" name="name" required maxlength="12"></label>
+        <label>동네 코드 <span class="memo">동네 주인에게 받은 코드</span><input type="text" name="code" required maxlength="40" autocapitalize="none" autocorrect="off"></label>
+        <div class="memo">비밀번호 찾기가 없어요. 다른 사이트와 다른 비밀번호로 정하고, 따로 적어 두세요.</div>` : ''}
+        <div class="err" id="gateErr"></div>
+        <button class="btn primary" type="submit">${signup ? '🏠 이사 오기' : '🚪 들어가기'}</button>
+      </form></div>`);
+  }
+  async function doLogin(e) {
+    e.preventDefault();
+    const f = e.target.elements;
+    busyBtn(true); gateErr('');
+    const { data, error } = await SB.auth.signInWithPassword({ email: f.email.value.trim(), password: f.pw.value });
+    busyBtn(false);
+    if (error) { gateErr(friendly(error)); return; }
+    afterLogin(data.session);
+  }
+  async function doSignup(e) {
+    e.preventDefault();
+    const f = e.target.elements;
+    const email = f.email.value.trim(), pw = f.pw.value, name = f.name.value.trim(), code = f.code.value.trim();
+    if (pw.length < 8) { gateErr('비밀번호는 8자 이상으로 정해 주세요'); return; }
+    if (pw !== f.pw2.value) { gateErr('비밀번호 두 칸이 서로 달라요'); return; }
+    if (!name) { gateErr('집 이름을 적어 주세요'); return; }
+    busyBtn(true); gateErr('');
+    try {
+      // 계정을 만들기 전에 동네 코드부터 확인해요
+      const chk = await SB.rpc('hood_name', { p_code: code });
+      if (chk.error) throw chk.error;
+      if (!chk.data) throw new Error('bad_code');
+      const { data, error } = await SB.auth.signUp({ email, password: pw });
+      if (error) throw error;
+      if (!data.session) throw new Error('not confirmed');
+      const j = await SB.rpc('join_hood', { p_code: code, p_name: name });
+      if (j.error) throw j.error;
+      toast(`${j.data}에 이사 왔어요 🏠`);
+      afterLogin(data.session);
+    } catch (err) { busyBtn(false); gateErr(friendly(err)); }
+  }
+  // 가입은 됐는데 동네에 못 들어간 경우 (코드를 다시 넣어요)
+  function showJoin() {
+    showGate(`<div class="gate-box"><h1>🏘️ 동네 코드</h1>
+      <div class="sub">${esc(ME.email)} 계정으로 들어왔어요. 동네 코드를 넣으면 집이 생겨요.</div>
+      <form onsubmit="doJoin(event)">
+        <label>집 이름 <span class="memo">12자까지</span><input type="text" name="name" required maxlength="12"></label>
+        <label>동네 코드<input type="text" name="code" required maxlength="40" autocapitalize="none" autocorrect="off"></label>
+        <div class="err" id="gateErr"></div>
+        <button class="btn primary" type="submit">🏠 집 만들기</button>
+        <button class="btn" type="button" onclick="logout()">다른 계정으로</button>
+      </form></div>`);
+  }
+  async function doJoin(e) {
+    e.preventDefault();
+    const f = e.target.elements;
+    busyBtn(true); gateErr('');
+    const j = await SB.rpc('join_hood', { p_code: f.code.value.trim(), p_name: f.name.value.trim() });
+    busyBtn(false);
+    if (j.error) { gateErr(friendly(j.error)); return; }
+    const { data } = await SB.auth.getSession();
+    afterLogin(data.session);
+  }
+
+  async function afterLogin(session) {
+    if (!session) { showAuth('login'); return; }
+    ME = session.user;
+    BEFORE_IMPORT_KEY = STORE_KEY + ':before-import:' + ME.id;
+    showGate(`<div class="gate-box"><h1>🍮 푸딩이네 동네</h1><div class="sub">집 문을 여는 중…</div></div>`);
+    const prof = await SB.from('profiles').select('user_id, name, public_data, updated_at').eq('user_id', ME.id).maybeSingle();
+    if (prof.error) { showGate(`<div class="gate-box"><h1>😢</h1><div class="err">${esc(friendly(prof.error))}</div><button class="btn" onclick="location.reload()">다시 해 보기</button></div>`); return; }
+    if (!prof.data) { showJoin(); return; }
+    MY_PROFILE = prof.data;
+    const home = await SB.from('homes').select('data').eq('user_id', ME.id).maybeSingle();
+    if (home.error) { showGate(`<div class="gate-box"><h1>😢</h1><div class="err">${esc(friendly(home.error))}</div><button class="btn" onclick="location.reload()">다시 해 보기</button></div>`); return; }
+    HOME = DB = normalize(home.data ? home.data.data : {});
+    VISIT = null;
+    const hn = await SB.rpc('my_hood_name');
+    HOOD_NAME = hn.data || '우리 동네';
+    if (!home.data) { saveDB(); await flushSave(); } // 처음 들어온 사람은 빈 집을 만들어 둬요
+    showLobby();
+  }
+
+  async function goLobby() { await flushSave(); showLobby(); }
+  async function showLobby() {
+    showGate(`<div class="gate-box wide"><h1>🏘️ ${esc(HOOD_NAME)}</h1><div class="sub">집들을 불러오는 중…</div></div>`);
+    const { data, error } = await SB.from('profiles').select('user_id, name, public_data, updated_at').order('updated_at', { ascending: false }).limit(100);
+    if (error) { toast(friendly(error)); }
+    LOBBY = (data || []).sort((a, b) => (b.user_id === ME.id) - (a.user_id === ME.id));
+    const today = ymd(new Date());
+    const cards = LOBBY.map(p => {
+      const mine = p.user_id === ME.id;
+      const pub = mine ? readPublic({ public_data: publicData(HOME) }) : readPublic(p);
+      const n = pub.busy.filter(b => b.d === today).length;
+      const status = [n ? `🗓️ 오늘 일정 ${n}개 있음` : '🗓️ 오늘은 한가해요', tripText(pub.trip)].filter(Boolean).join('<br>');
+      return `
+        <div class="house ${mine ? 'mine' : ''}">
+          <div class="roof">${mine ? '🏡' : '🏠'}</div>
+          <b>${esc(homeOf(p.name))} ${mine ? '<span class="memo">(내 집)</span>' : ''}</b>
+          <div class="st">Lv.${pub.lv} · 가구 ${pub.furn.length}개</div>
+          <div class="st">${status}</div>
+          <button class="btn ${mine ? 'primary' : ''}" type="button" onclick="visitHouse('${p.user_id}')">${mine ? '🚪 내 집 들어가기' : '👋 놀러 가기'}</button>
+        </div>`;
+    }).join('');
+    showGate(`<div class="gate-box wide">
+      <div class="gate-top">
+        <div><h1>🏘️ ${esc(HOOD_NAME)}</h1><div class="sub" style="margin:0">${esc(MY_PROFILE.name)}님, 어서 와요! 이웃집에서는 일정 '있음' · 여행 중만 보이고 업무 · 가계부는 잠겨 있어요.</div></div>
+        <button class="btn" type="button" onclick="logout()">🚪 나가기</button>
+      </div>
+      <div class="houses">${cards}</div>
+      ${LOBBY.length < 2 ? `<div class="memo" style="margin-top:14px">아직 이웃이 없어요. 친구에게 이 링크와 동네 코드를 알려 주면 이사 올 수 있어요.</div>` : ''}
+      ${!hasRecords(HOME) ? `<div class="memo" style="margin-top:8px">💡 예전 푸딩이네 기록이 있다면, 내 집에 들어가서 ⚙️ → 백업 파일 가져오기로 옮길 수 있어요.</div>` : ''}
+    </div>`);
+  }
+  function visitHouse(uid) {
+    const p = LOBBY.find(x => x.user_id === uid);
+    if (!p) return;
+    if (uid === ME.id) { VISIT = null; DB = HOME; }
+    else { VISIT = p; DB = visitDB(p); }
+    const bar = document.getElementById('visitBar');
+    bar.hidden = !VISIT;
+    bar.innerHTML = VISIT ? `<span>👋 ${esc(homeOf(VISIT.name))}에 놀러 왔어요 · 둘러보기만 할 수 있어요</span>
+      <span><button class="btn" type="button" onclick="visitHouse('${ME.id}')">🏡 내 집으로</button>
+      <button class="btn" type="button" onclick="goLobby()">🏘️ 로비</button></span>` : '';
+    hideGate();
+    refreshLiving();
+    const hello = VISIT ? VISIT_LINES()[0] : todayLine() || '어서 와! 오늘은 뭘 적어 볼까?';
+    document.getElementById('bubbleText').textContent = hello.length > 19 ? hello.slice(0, 18) + '…' : hello;
+  }
+  async function logout() {
+    await flushSave();
+    try { localStorage.removeItem(BEFORE_IMPORT_KEY); } catch (e) {}
+    await SB.auth.signOut();
+    ME = MY_PROFILE = VISIT = HOME = null;
+    DB = normalize({});
+    document.getElementById('visitBar').hidden = true;
+    refreshLiving();
+    showAuth('login');
+  }
+
+  async function boot() {
+    const cfg = window.PUDDING_CONFIG || {};
+    if (!window.supabase || !cfg.SUPABASE_URL || !cfg.SUPABASE_KEY) { showConfigGate(); return; }
+    try { SB = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY); }
+    catch (e) { showConfigGate(); return; }
+    const { data } = await SB.auth.getSession();
+    if (data.session) afterLogin(data.session); else showAuth('login');
+  }
+
+  // ---- 시작 ----
+  refreshLiving();
+  boot();
+  paint();
+  setInterval(paint, 1000);
+  // 자정이 지나면 오늘 일정 수를 다시 세요
+  let lastDay = ymd(new Date());
+  setInterval(() => { const d = ymd(new Date()); if (d !== lastDay) { lastDay = d; refreshLiving(); } }, 60 * 1000);
+</script>
+</body>
+</html>

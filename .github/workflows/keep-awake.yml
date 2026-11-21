@@ -1,0 +1,22 @@
+# 푸딩이네 저장소(Supabase 무료 프로젝트)는 7일 동안 안 쓰면 잠들어요.
+# 월 · 목 아침마다 동네 이름을 한 번 물어봐서 깨어 있게 해요. (공개용 키만 써요)
+name: keep-awake
+
+on:
+  schedule:
+    - cron: '0 0 * * 1,4'   # 월 · 목 오전 9시 (한국 시간)
+  workflow_dispatch:         # Actions 탭에서 직접 눌러 돌릴 수도 있어요
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Supabase 깨우기
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            'https://srcezohfwphlxwrpfyuy.supabase.co/rest/v1/rpc/hood_name' \
+            -H 'apikey: sb_publishable_J9SC__02CUr9bgZ0LL6bnQ_O25fMeiX' \
+            -H 'Content-Type: application/json' \
+            -d '{"p_code":"keep-awake"}')
+          echo "응답: $code"
+          test "$code" = "200"

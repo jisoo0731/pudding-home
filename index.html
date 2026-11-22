@@ -883,6 +883,19 @@
         <path id="scarf2" d="M424 424 L436 446 L420 444 Z" fill="#6AB8A4"/>
         <!-- ④ 맨 앞 (팔 · 소품 · 부리 · 코) -->
         <g id="chFront"></g>
+        <!-- 🧳 여행 중이면 캐리어를 들고 있어요 -->
+        <g id="tripBag" style="display:none">
+          <rect x="292" y="404" width="50" height="56" rx="8" fill="#4FA3D9" stroke="#3A84B5" stroke-width="2.5"/>
+          <path d="M306 404 L306 460 M328 404 L328 460" stroke="#3A84B5" stroke-width="2"/>
+          <path d="M306 404 L306 390 Q306 384 312 384 L322 384 Q328 384 328 390 L328 404" stroke="#5A5A5A" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <circle cx="300" cy="463" r="4" fill="#5A5A5A"/><circle cx="334" cy="463" r="4" fill="#5A5A5A"/>
+          <rect x="296" y="414" width="15" height="11" rx="2" fill="#FFD95A" transform="rotate(-12 303 419)"/>
+          <circle cx="324" cy="440" r="7" fill="#F7A9C0"/><path d="M320 440 L328 440 M324 436 L324 444" stroke="#fff" stroke-width="1.6"/>
+          <g id="tripArm">
+            <path class="ch-fur-stroke" d="M356 428 Q336 418 318 386" stroke="#FBE29A" stroke-width="12" fill="none" stroke-linecap="round"/>
+            <circle class="ch-paw" cx="317" cy="386" r="7" fill="#F7D57D"/>
+          </g>
+        </g>
         <!-- 🍮 푸딩 꾸미기 (푸딩과 같이 움직여요) -->
         <g id="f-ribbon" style="display:none">
           <path d="M344 352 L330 340 L332 364 Z" fill="#F27A9B"/>
@@ -1127,7 +1140,7 @@
   const mirror = (svg) => `${svg}<g transform="translate(800 0) scale(-1 1)">${svg}</g>`; // 왼쪽을 그리면 오른쪽은 거울로
   const CHARACTERS = {
     pudding: { emoji: '🐶', name: '푸딩', desc: '졸린 눈 크림색 강아지', fur: '#FBE29A', paw: '#F7D57D', dog: true },
-    bear: { emoji: '💪', name: '근육 곰', desc: '머리띠 두르고 아령 드는 곰', fur: '#B07A4F', paw: '#9C6A42',
+    bear: { emoji: '💪', name: '근육 곰', desc: '머리띠 두르고 아령 드는 곰', fur: '#B07A4F', paw: '#9C6A42', ownArm: true,
       back: mirror('<circle cx="350" cy="342" r="20" fill="#9C6A42"/><circle cx="350" cy="342" r="10" fill="#E8C9A6"/>'),
       face: `<ellipse cx="400" cy="398" rx="22" ry="16" fill="#E8C9A6"/>
         <path d="M340 352 Q400 330 460 352 L458 364 Q400 344 342 364 Z" fill="#E0484F"/>
@@ -1203,6 +1216,12 @@
     const q$ = s => document.querySelectorAll('.pudding ' + s);
     q$('.ch-fur').forEach(el => el.setAttribute('fill', c.fur));
     q$('.ch-paw').forEach(el => el.setAttribute('fill', c.paw));
+    q$('.ch-fur-stroke').forEach(el => el.setAttribute('stroke', c.fur));
+    // 🧳 여행 중이면 캐리어: 내 집은 내 여행 기록으로, 놀러 간 집은 문패의 '여행 중'으로
+    const traveling = VISIT ? (readPublic(VISIT).trip || {}).s === 'now'
+      : (t => !!t && ymd(new Date()) >= t.start)(nextTrip());
+    document.getElementById('tripBag').style.display = traveling ? '' : 'none';
+    document.getElementById('tripArm').style.display = c.ownArm ? 'none' : ''; // 원래 팔이 있는 캐릭터는 그 팔로 잡아요
     q$('.ch-eye').forEach(el => { el.style.display = c.eye === 'none' ? 'none' : ''; el.setAttribute('stroke', c.eye && c.eye !== 'none' ? c.eye : '#4A3B2C'); });
     q$('.ch-nose').forEach(el => { el.style.display = c.nose === false ? 'none' : ''; });
     ['dogEars', 'dogLeaf'].forEach(x => { document.getElementById(x).style.display = c.dog ? '' : 'none'; });

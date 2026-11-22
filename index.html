@@ -1295,7 +1295,7 @@
     if (VISIT) toast(`📌 ${VISIT.name}: ${noteNow()}`);
     else openPanel('settings');
   }
-  function saveNote(e) {
+  function saveBoardNote(e) { // 업무 방 메모의 saveNote와 이름이 겹치지 않게
     e.preventDefault();
     if (VISIT) return;
     DB.note = cleanNote(e.target.elements.note.value);
@@ -2519,7 +2519,7 @@
       <div class="sec">
         <h3>📌 알림판</h3>
         <div class="memo">거실 벽 달력 밑에 메모로 붙어요. <b>놀러 온 이웃과 마을 로비에도 보여요.</b> 전화번호 · 주소 같은 개인정보는 적지 마세요. (${NOTE_MAX}자까지)</div>
-        <form class="link-form" onsubmit="saveNote(event)" autocomplete="off">
+        <form class="link-form" onsubmit="saveBoardNote(event)" autocomplete="off">
           <input type="text" name="note" maxlength="${NOTE_MAX}" placeholder="예: 나 지금 여행 중이라 급하면 전화줘" value="${esc(DB.note || '')}" aria-label="알림판에 붙일 말">
           <button class="btn primary" type="submit">붙이기</button>
         </form>

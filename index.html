@@ -784,6 +784,15 @@
       <ellipse id="rug3" cx="400" cy="462" rx="120" ry="20" fill="#FBCDB6"/>
 
       <!-- ===== 가구 상점에서 산 가구 (놓은 것만 보여요) ===== -->
+      <!-- 📌 알림판: 달력 밑에 붙은 메모 말풍선 (⚙️에서 써요, 놀러 온 이웃도 봐요) -->
+      <g id="noteBoard" class="hot" style="display:none" onclick="noteClick()" role="button" aria-label="알림판">
+        <path d="M322 214 L334 202 L346 214 Z" fill="#FFF3B0" stroke="#E8C95A" stroke-width="2" stroke-linejoin="round"/>
+        <rect x="284" y="212" width="192" height="50" rx="12" fill="#FFF3B0" stroke="#E8C95A" stroke-width="2"/>
+        <path d="M324 214 L344 214" stroke="#FFF3B0" stroke-width="3"/>
+        <circle cx="292" cy="218" r="5" fill="#E0607E"/><circle cx="290.5" cy="216.5" r="1.6" fill="#fff" opacity=".8"/>
+        <text id="noteText" x="380" y="233" text-anchor="middle" font-size="12" font-weight="700" fill="#6B5420"></text>
+      </g>
+
       <!-- 🖼️ 액자 -->
       <g id="f-frame" style="display:none">
         <line x1="492" y1="150" x2="492" y2="160" stroke="#9A7C72" stroke-width="2"/>
@@ -1115,7 +1124,8 @@
       trips: list('trips', validTrip).map(normalizeTrip), packList: normalizePackList(base.packList),
       lastBackup: typeof base.lastBackup === 'string' && DATE_RE.test(base.lastBackup) ? base.lastBackup : '',
       character: CHARACTERS[base.character] ? base.character : 'pudding',
-      workLink: cleanLink(base.workLink) };
+      workLink: cleanLink(base.workLink),
+      note: cleanNote(base.note) };
     const x = base.xp;
     const okXP = !!x && Number.isInteger(x.total) && x.total >= 0 && x.total <= 10000000
       && Number.isInteger(x.spent) && x.spent >= 0 && x.spent <= x.total;
@@ -1250,6 +1260,50 @@
     });
     document.querySelector('.pudding').setAttribute('aria-label', `${c.name}에게 말 걸기`);
   }
+  // ---- 📌 알림판: 이웃에게 알리는 한마디 (문패에 실려서 놀러 온 이웃 · 로비에도 보여요) ----
+  const NOTE_MAX = 30;
+  function cleanNote(v) { return typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, NOTE_MAX) : ''; }
+  // 14자 안팎으로 끊어 두 줄까지 (띄어쓰기에서 먼저 끊어요)
+  function wrapNote(s, width = 14, maxLines = 2) {
+    const lines = []; let cur = '';
+    for (const w of s.split(' ')) {
+      const next = cur ? cur + ' ' + w : w;
+      if (next.length <= width) { cur = next; continue; }
+      if (cur) lines.push(cur);
+      cur = w;
+      while (cur.length > width) { lines.push(cur.slice(0, width)); cur = cur.slice(width); }
+    }
+    if (cur) lines.push(cur);
+    if (lines.length > maxLines) { lines.length = maxLines; lines[maxLines - 1] = lines[maxLines - 1].slice(0, width - 1) + '…'; }
+    return lines;
+  }
+  const noteNow = () => VISIT ? readPublic(VISIT).note : DB.note;
+  function applyNote() {
+    const note = noteNow(), board = document.getElementById('noteBoard'), text = document.getElementById('noteText');
+    board.style.display = note ? '' : 'none';
+    text.textContent = '';
+    if (!note) return;
+    const lines = wrapNote(note);
+    lines.forEach((l, i) => {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+      t.setAttribute('x', '384'); t.setAttribute('dy', i ? '16' : (lines.length === 1 ? '8' : '0'));
+      t.textContent = l; text.appendChild(t);
+    });
+    board.setAttribute('aria-label', '알림판: ' + note);
+  }
+  function noteClick() {
+    if (VISIT) toast(`📌 ${VISIT.name}: ${noteNow()}`);
+    else openPanel('settings');
+  }
+  function saveNote(e) {
+    e.preventDefault();
+    if (VISIT) return;
+    DB.note = cleanNote(e.target.elements.note.value);
+    if (saveDB()) toast(DB.note ? '📌 알림판에 붙였어요. 이웃에게도 보여요' : '알림판을 뗐어요');
+    refreshLiving();
+    renderBackup();
+  }
+
   // ---- 💼 내 업무 프로그램 링크: 업무 문을 누르면 새 창으로 열려요 (주인만 보고, 이웃에게는 안 보내요) ----
   function cleanLink(v) {
     if (typeof v !== 'string' || !v.trim() || v.length > 500) return '';
@@ -2463,6 +2517,15 @@
         <div class="memo">여러 사람이 같이 쓰는 컴퓨터라면 다 쓰고 꼭 나가기를 눌러 주세요.</div>
       </div>
       <div class="sec">
+        <h3>📌 알림판</h3>
+        <div class="memo">거실 벽 달력 밑에 메모로 붙어요. <b>놀러 온 이웃과 마을 로비에도 보여요.</b> 전화번호 · 주소 같은 개인정보는 적지 마세요. (${NOTE_MAX}자까지)</div>
+        <form class="link-form" onsubmit="saveNote(event)" autocomplete="off">
+          <input type="text" name="note" maxlength="${NOTE_MAX}" placeholder="예: 나 지금 여행 중이라 급하면 전화줘" value="${esc(DB.note || '')}" aria-label="알림판에 붙일 말">
+          <button class="btn primary" type="submit">붙이기</button>
+        </form>
+        ${DB.note ? `<div class="memo" style="margin-top:6px"><a href="#" onclick="event.preventDefault(); DB.note = ''; saveDB(); refreshLiving(); renderBackup(); toast('알림판을 뗐어요')">📌 알림판 떼기</a></div>` : ''}
+      </div>
+      <div class="sec">
         <h3>💼 내 업무 프로그램 링크</h3>
         <div class="memo">내가 만든 업무 프로그램 · 워크플로우 주소를 적으면, 거실의 <b>업무 문</b>을 누를 때 그 링크가 새 창으로 열려요. 비워 두면 푸딩이네 업무 방이 열려요. 이 링크는 나만 보고, 놀러 온 이웃에게는 업무 문이 잠겨 있어요.</div>
         <form class="link-form" onsubmit="saveWorkLink(event)" autocomplete="off">
@@ -2711,6 +2774,7 @@
     refreshHUD();
     applyFurniture();
     applyCharacter();
+    applyNote();
     const n = schedulesOn(ymd(new Date())).length;
     document.getElementById('todaySched').textContent = n + '개';
     document.getElementById('calBadge').style.display = n ? '' : 'none';
@@ -2875,7 +2939,7 @@
       const n = Math.round((parseYmd(trip.start) - parseYmd(today)) / 86400000);
       if (n <= 60) tr = { s: 'soon', d: n };
     }
-    return { lv: levelInfo(db.xp.total).lv, furn: db.furniture.placed.slice(0, 40), busy, trip: tr, ch: db.character };
+    return { lv: levelInfo(db.xp.total).lv, furn: db.furniture.placed.slice(0, 40), busy, trip: tr, ch: db.character, note: db.note };
   }
   // 문패는 다른 사람이 쓴 것이라 하나씩 검사해서 써요
   function readPublic(p) {
@@ -2887,7 +2951,7 @@
     const furn = Array.isArray(pd.furn) ? pd.furn.filter(id => FURNITURE.some(it => it.id === id)) : [];
     const tr = pd.trip && (pd.trip.s === 'now' || (pd.trip.s === 'soon' && Number.isInteger(pd.trip.d) && pd.trip.d >= 0 && pd.trip.d <= 60)) ? pd.trip : null;
     const ch = CHARACTERS[pd.ch] ? pd.ch : 'pudding';
-    return { lv, busy, furn, trip: tr, ch };
+    return { lv, busy, furn, trip: tr, ch, note: cleanNote(pd.note) };
   }
   const tripText = tr => !tr ? '' : tr.s === 'now' ? '✈️ 여행 중' : tr.d === 0 ? '✈️ 오늘 여행 출발' : `✈️ D-${tr.d} 여행 예정`;
   function xpForLevel(lv) { let t = 0; for (let i = 1; i < lv; i++) t += 50 + (i - 1) * 25; return t; }
@@ -3195,7 +3259,7 @@
       const mine = p.user_id === ME.id;
       const pub = mine ? readPublic({ public_data: publicData(HOME) }) : readPublic(p);
       const n = pub.busy.filter(b => b.d === today).length;
-      const status = [n ? `🗓️ 오늘 일정 ${n}개 있음` : '🗓️ 오늘은 한가해요', tripText(pub.trip)].filter(Boolean).join('<br>');
+      const status = [n ? `🗓️ 오늘 일정 ${n}개 있음` : '🗓️ 오늘은 한가해요', tripText(pub.trip), pub.note ? `📌 ${esc(pub.note)}` : ''].filter(Boolean).join('<br>');
       return `
         <div class="house ${mine ? 'mine' : ''}">
           <div class="roof">${mine ? '🏡' : '🏠'}</div>

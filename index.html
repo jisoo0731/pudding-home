@@ -861,6 +861,8 @@
       </g>
 
       <!-- 푸딩 (나만의 캐릭터) -->
+      <!-- 캐릭터 크기: 발(400, 466)을 기준으로 줄여요 (안쪽 g에는 통통 튀는 움직임이 걸려 있어요) -->
+      <g transform="translate(400 466) scale(.82) translate(-400 -466)">
       <g class="pudding hot" onclick="sayRandom()" role="button" aria-label="푸딩에게 말 걸기">
         <ellipse cx="400" cy="466" rx="58" ry="10" fill="#000" opacity=".08"/>
         <!-- 캐릭터마다 그리는 층 ① 몸 뒤 (꼬리 · 등껍질) -->
@@ -929,9 +931,10 @@
           <circle cx="400" cy="328" r="4" fill="#F27A9B"/><circle cx="386" cy="333" r="2.5" fill="#A6D8F0"/><circle cx="414" cy="333" r="2.5" fill="#A6D8F0"/>
         </g>
       </g>
+      </g>
 
-      <!-- 말풍선 -->
-      <g id="bubble">
+      <!-- 말풍선 (캐릭터가 작아진 만큼 조금 내려와요) -->
+      <g id="bubble" transform="translate(0 18)">
         <rect x="270" y="256" width="260" height="46" rx="20" fill="#FFFFFF" stroke="#E0D2BC" stroke-width="2"/>
         <path d="M392 302 L400 316 L408 302 Z" fill="#FFFFFF"/>
         <text id="bubbleText" x="400" y="285" text-anchor="middle" font-size="15" font-weight="700" fill="#4A3B2C">어서 와! 오늘은 뭘 적어 볼까?</text>

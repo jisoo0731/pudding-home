@@ -505,6 +505,12 @@
   .house .st { font-size: 13px; color: var(--ink-soft); }
   .house .btn { margin-top: 4px; }
 
+  /* 캐릭터 고르기 */
+  .ch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; margin-top: 10px; }
+  .ch-pick { display: grid; justify-items: center; gap: 2px; padding: 10px 6px; text-align: center; }
+  .ch-pick .ch-emoji { font-size: 26px; line-height: 1.1; }
+  .ch-pick .memo { font-size: 11px; line-height: 1.3; }
+
   /* 마을 지도 */
   .village-wrap { border: 3px solid var(--line); border-radius: 22px; overflow: hidden; background: #BFE3A8; }
   .village { display: block; width: 100%; height: auto; }
@@ -839,16 +845,15 @@
       <!-- 푸딩 (나만의 캐릭터) -->
       <g class="pudding hot" onclick="sayRandom()" role="button" aria-label="푸딩에게 말 걸기">
         <ellipse cx="400" cy="466" rx="58" ry="10" fill="#000" opacity=".08"/>
+        <!-- 캐릭터마다 그리는 층 ① 몸 뒤 (꼬리 · 등껍질) -->
+        <g id="chUnder"></g>
         <!-- 몸통 -->
         <ellipse class="ch-fur" cx="400" cy="434" rx="52" ry="34" fill="#FBE29A"/>
         <!-- 발 -->
         <ellipse class="ch-paw" cx="372" cy="462" rx="14" ry="8" fill="#F7D57D"/>
         <ellipse class="ch-paw" cx="428" cy="462" rx="14" ry="8" fill="#F7D57D"/>
-        <!-- 💪 근육 곰: 동그란 귀 (머리 뒤) -->
-        <g id="bearEars" style="display:none">
-          <circle cx="350" cy="342" r="20" fill="#9C6A42"/><circle cx="350" cy="342" r="10" fill="#E8C9A6"/>
-          <circle cx="450" cy="342" r="20" fill="#9C6A42"/><circle cx="450" cy="342" r="10" fill="#E8C9A6"/>
-        </g>
+        <!-- ② 머리 뒤 (귀 · 뿔 · 털뭉치) -->
+        <g id="chBack"></g>
         <!-- 머리 -->
         <ellipse class="ch-fur" cx="400" cy="380" rx="62" ry="50" fill="#FBE29A"/>
         <!-- 늘어진 귀 (푸딩) -->
@@ -858,39 +863,22 @@
         </g>
         <!-- 머리 위 작은 잎사귀 (푸딩) -->
         <path id="dogLeaf" d="M400 332 Q392 314 404 306 Q412 320 400 332 Z" fill="#8CCB7E"/>
-        <!-- 💪 근육 곰: 주둥이 · 빨간 머리띠 -->
-        <g id="bearFace" style="display:none">
-          <ellipse cx="400" cy="398" rx="22" ry="16" fill="#E8C9A6"/>
-          <path d="M340 352 Q400 330 460 352 L458 364 Q400 344 342 364 Z" fill="#E0484F"/>
-          <path d="M458 356 L478 348 L474 362 Z M458 360 L476 370 L466 374 Z" fill="#E0484F"/>
-        </g>
+        <!-- ③ 얼굴 (주둥이 · 무늬 · 머리띠, 눈 아래에 깔려요) -->
+        <g id="chFace"></g>
         <!-- 졸린 눈 -->
-        <path d="M378 384 Q384 390 390 384" stroke="#4A3B2C" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-        <path d="M410 384 Q416 390 422 384" stroke="#4A3B2C" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <path class="ch-eye" d="M378 384 Q384 390 390 384" stroke="#4A3B2C" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <path class="ch-eye" d="M410 384 Q416 390 422 384" stroke="#4A3B2C" stroke-width="3.5" fill="none" stroke-linecap="round"/>
         <!-- 코 · 입 -->
-        <ellipse cx="400" cy="394" rx="4" ry="3" fill="#6B4A2B"/>
-        <path d="M394 400 Q400 405 406 400" stroke="#6B4A2B" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <ellipse class="ch-nose" cx="400" cy="394" rx="4" ry="3" fill="#6B4A2B"/>
+        <path class="ch-nose" d="M394 400 Q400 405 406 400" stroke="#6B4A2B" stroke-width="2" fill="none" stroke-linecap="round"/>
         <!-- 볼 -->
         <ellipse cx="368" cy="398" rx="8" ry="5" fill="#F7A9A0" opacity=".7"/>
         <ellipse cx="432" cy="398" rx="8" ry="5" fill="#F7A9A0" opacity=".7"/>
         <!-- 목에 두른 민트 스카프 -->
         <path id="scarf1" d="M356 416 Q400 432 444 416 L442 426 Q400 442 358 426 Z" fill="#7CC9B5"/>
         <path id="scarf2" d="M424 424 L436 446 L420 444 Z" fill="#6AB8A4"/>
-        <!-- 💪 근육 곰: 알통 팔 · 아령 · 땀방울 -->
-        <g id="bearArms" style="display:none">
-          <path d="M358 420 Q322 414 324 380" stroke="#B07A4F" stroke-width="18" fill="none" stroke-linecap="round"/>
-          <ellipse cx="332" cy="402" rx="13" ry="11" fill="#B07A4F"/>
-          <path d="M326 398 Q332 392 338 398" stroke="#8E5D38" stroke-width="2" fill="none" stroke-linecap="round"/>
-          <circle cx="324" cy="374" r="11" fill="#9C6A42"/>
-          <path d="M442 420 Q478 414 476 380" stroke="#B07A4F" stroke-width="18" fill="none" stroke-linecap="round"/>
-          <ellipse cx="468" cy="402" rx="13" ry="11" fill="#B07A4F"/>
-          <path d="M462 398 Q468 392 474 398" stroke="#8E5D38" stroke-width="2" fill="none" stroke-linecap="round"/>
-          <rect x="456" y="370" width="40" height="7" rx="3" fill="#7A7A7A"/>
-          <rect x="450" y="358" width="10" height="30" rx="3" fill="#4A4A4A"/>
-          <rect x="492" y="358" width="10" height="30" rx="3" fill="#4A4A4A"/>
-          <circle cx="476" cy="374" r="11" fill="#9C6A42"/>
-          <path d="M480 330 Q486 342 480 346 Q474 342 480 330 Z" fill="#8FD3F5"/>
-        </g>
+        <!-- ④ 맨 앞 (팔 · 소품 · 부리 · 코) -->
+        <g id="chFront"></g>
         <!-- 🍮 푸딩 꾸미기 (푸딩과 같이 움직여요) -->
         <g id="f-ribbon" style="display:none">
           <path d="M344 352 L330 340 L332 364 Z" fill="#F27A9B"/>
@@ -1129,16 +1117,93 @@
   const SHOP_TABS = [['all', '전체'], ['window', '🪟 창문'], ['desk', '📝 책상'], ['wall', '🖼️ 벽'], ['floor', '🛋️ 바닥'], ['pudding', '🍮 푸딩']];
 
   // ---- 캐릭터: 집주인이 ⚙️에서 골라요. 놀러 온 이웃과 마을에도 같이 보여요 ----
+  // 캐릭터마다: 털 · 발 색, 늘어진 귀(푸딩만), 눈 색 · 숨기기, 코 숨기기, 네 층(under · back · face · front)에 그릴 그림
+  // 그림 기준: 머리 (400, 380) 가로 62 세로 50 · 몸통 (400, 434) · 눈 (384 · 416, 384) · 코 (400, 394)
+  const mirror = (svg) => `${svg}<g transform="translate(800 0) scale(-1 1)">${svg}</g>`; // 왼쪽을 그리면 오른쪽은 거울로
   const CHARACTERS = {
-    pudding: { emoji: '🐶', name: '푸딩', desc: '졸린 눈 크림색 강아지', fur: '#FBE29A', paw: '#F7D57D' },
-    bear: { emoji: '💪', name: '근육 곰', desc: '머리띠 두르고 아령 드는 갈색 곰', fur: '#B07A4F', paw: '#9C6A42' },
+    pudding: { emoji: '🐶', name: '푸딩', desc: '졸린 눈 크림색 강아지', fur: '#FBE29A', paw: '#F7D57D', dog: true },
+    bear: { emoji: '💪', name: '근육 곰', desc: '머리띠 두르고 아령 드는 곰', fur: '#B07A4F', paw: '#9C6A42',
+      back: mirror('<circle cx="350" cy="342" r="20" fill="#9C6A42"/><circle cx="350" cy="342" r="10" fill="#E8C9A6"/>'),
+      face: `<ellipse cx="400" cy="398" rx="22" ry="16" fill="#E8C9A6"/>
+        <path d="M340 352 Q400 330 460 352 L458 364 Q400 344 342 364 Z" fill="#E0484F"/>
+        <path d="M458 356 L478 348 L474 362 Z M458 360 L476 370 L466 374 Z" fill="#E0484F"/>`,
+      front: `<path d="M358 420 Q322 414 324 380" stroke="#B07A4F" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <ellipse cx="332" cy="402" rx="13" ry="11" fill="#B07A4F"/><path d="M326 398 Q332 392 338 398" stroke="#8E5D38" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <circle cx="324" cy="374" r="11" fill="#9C6A42"/>
+        <path d="M442 420 Q478 414 476 380" stroke="#B07A4F" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <ellipse cx="468" cy="402" rx="13" ry="11" fill="#B07A4F"/><path d="M462 398 Q468 392 474 398" stroke="#8E5D38" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <rect x="456" y="370" width="40" height="7" rx="3" fill="#7A7A7A"/><rect x="450" y="358" width="10" height="30" rx="3" fill="#4A4A4A"/>
+        <rect x="492" y="358" width="10" height="30" rx="3" fill="#4A4A4A"/><circle cx="476" cy="374" r="11" fill="#9C6A42"/>
+        <path d="M480 330 Q486 342 480 346 Q474 342 480 330 Z" fill="#8FD3F5"/>` },
+    cat: { emoji: '🐱', name: '치즈 고양이', desc: '새침한 줄무늬 고양이', fur: '#F6B56B', paw: '#E89B4C',
+      under: '<path d="M446 446 Q506 440 498 394 Q494 378 482 388" stroke="#F6B56B" stroke-width="13" fill="none" stroke-linecap="round"/>',
+      back: mirror('<path d="M344 356 L350 304 L384 336 Z" fill="#F6B56B"/><path d="M352 344 L355 320 L372 338 Z" fill="#F9C9C0"/>'),
+      face: `<path d="M390 336 L390 350 M400 332 L400 348 M410 336 L410 350" stroke="#E08A3C" stroke-width="4" stroke-linecap="round"/>
+        ${mirror('<path d="M362 396 L332 390 M362 402 L332 404" stroke="#8A6A5A" stroke-width="1.6" stroke-linecap="round"/>')}` },
+    turtle: { emoji: '🐢', name: '느긋한 거북이', desc: '천천히 가도 괜찮아', fur: '#A8D58E', paw: '#8EC174',
+      under: `<ellipse cx="400" cy="414" rx="80" ry="58" fill="#6E9F4E" stroke="#557D3B" stroke-width="4"/>
+        ${mirror('<path d="M330 396 L342 380 L358 386 L360 404 L346 414 L330 410 Z" fill="#88B866" stroke="#557D3B" stroke-width="2"/><path d="M332 424 L346 418 L356 430 L348 444 L334 440 Z" fill="#88B866" stroke="#557D3B" stroke-width="2"/>')}`,
+      face: '<circle cx="362" cy="356" r="3" fill="#8EC174"/><circle cx="436" cy="352" r="4" fill="#8EC174"/><circle cx="420" cy="342" r="2.5" fill="#8EC174"/>' },
+    rabbit: { emoji: '🐰', name: '깡총 토끼', desc: '당근을 꼭 쥔 하얀 토끼', fur: '#FFF8F2', paw: '#F2E2D8',
+      back: mirror('<g transform="rotate(-12 372 340)"><ellipse cx="372" cy="300" rx="15" ry="44" fill="#FFF8F2" stroke="#EADAD0" stroke-width="2"/><ellipse cx="372" cy="304" rx="7" ry="32" fill="#F9C0CB"/></g>'),
+      front: `<path d="M446 436 L470 402 L478 408 L456 442 Z" fill="#F59A3E"/>
+        <path d="M472 404 Q470 388 478 382 M474 404 Q482 390 492 392 M474 404 Q486 400 490 410" stroke="#6DBE6A" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <circle cx="452" cy="430" r="10" fill="#FFF8F2" stroke="#EADAD0" stroke-width="2"/>` },
+    fox: { emoji: '🦊', name: '꾀돌이 여우', desc: '꼬리가 풍성한 주황 여우', fur: '#F2913D', paw: '#4A3B2C',
+      under: '<path d="M444 446 Q526 446 512 378 Q496 410 452 422 Z" fill="#F2913D"/><path d="M512 378 Q520 396 504 404 Q500 390 512 378 Z" fill="#FFF4E6"/>',
+      back: mirror('<path d="M342 358 L348 300 L386 334 Z" fill="#F2913D"/><path d="M346 318 L348 300 L362 312 Z" fill="#4A3B2C"/>'),
+      face: mirror('<ellipse cx="374" cy="404" rx="24" ry="16" fill="#FFF4E6"/>') },
+    panda: { emoji: '🐼', name: '대나무 판다', desc: '대나무만 있으면 행복해', fur: '#FFFFFF', paw: '#3A3A3A', eye: '#FFFFFF',
+      back: mirror('<circle cx="350" cy="342" r="19" fill="#3A3A3A"/>'),
+      face: mirror('<ellipse cx="383" cy="386" rx="13" ry="10" fill="#3A3A3A" transform="rotate(-25 383 386)"/>'),
+      front: `<rect x="452" y="372" width="9" height="76" rx="4" fill="#7CB342"/>
+        <path d="M452 392 L462 392 M452 414 L462 414" stroke="#5E9230" stroke-width="2"/>
+        <path d="M460 380 Q478 368 486 374 Q474 384 460 380 Z" fill="#8BC34A"/><circle cx="456" cy="420" r="10" fill="#3A3A3A"/>` },
+    penguin: { emoji: '🐧', name: '뒤뚱 펭귄', desc: '오렌지 부리 신사', fur: '#3E4A5C', paw: '#F5A623', nose: false,
+      back: `<ellipse cx="400" cy="440" rx="34" ry="26" fill="#FFFFFF"/>
+        ${mirror('<ellipse cx="346" cy="436" rx="11" ry="24" fill="#3E4A5C" transform="rotate(24 346 436)"/>')}`,
+      face: '<path d="M346 384 Q350 344 400 352 Q450 344 454 384 Q454 422 400 424 Q346 422 346 384 Z" fill="#FFFFFF"/>',
+      front: '<path d="M390 392 L410 392 L400 404 Z" fill="#F5A623"/>' },
+    frog: { emoji: '🐸', name: '개굴 개구리', desc: '눈이 툭 튀어나온 개구리', fur: '#8BCB6A', paw: '#76B657', eye: 'none', nose: false,
+      back: mirror('<circle cx="370" cy="338" r="18" fill="#8BCB6A"/>'),
+      face: `${mirror('<circle cx="370" cy="336" r="10" fill="#FFFFFF"/><circle cx="372" cy="338" r="5" fill="#2E3A2E"/>')}
+        <path d="M372 400 Q400 416 428 400" stroke="#4A3B2C" stroke-width="3" fill="none" stroke-linecap="round"/>` },
+    hamster: { emoji: '🐹', name: '볼빵빵 햄스터', desc: '해바라기씨 모으는 중', fur: '#F3D2A2', paw: '#E8BE88',
+      back: mirror('<circle cx="356" cy="340" r="13" fill="#E8B07A"/><circle cx="356" cy="340" r="7" fill="#F9C9C0"/>'),
+      face: mirror('<ellipse cx="362" cy="402" rx="18" ry="14" fill="#FFF1E0"/>'),
+      front: '<ellipse cx="400" cy="434" rx="8" ry="12" fill="#5A4A3A"/><path d="M400 424 L400 444" stroke="#EDE3D6" stroke-width="2"/>' },
+    chick: { emoji: '🐥', name: '삐약 병아리', desc: '달걀 껍질 모자를 쓴 병아리', fur: '#FFE14D', paw: '#F5A623', nose: false,
+      front: `<path d="M390 392 L410 392 L400 402 Z" fill="#F5A623"/>
+        <path d="M348 350 L360 334 L372 348 L386 330 L400 346 L414 330 L428 348 L440 334 L452 350 Q400 296 348 350 Z" fill="#FFFFFF" stroke="#E8DCC8" stroke-width="2"/>
+        ${mirror('<ellipse cx="346" cy="430" rx="10" ry="18" fill="#F5CC2E" transform="rotate(30 346 430)"/>')}` },
+    pig: { emoji: '🐷', name: '꿀꿀 돼지', desc: '분홍 코가 매력 포인트', fur: '#F9B8C4', paw: '#F29AAB', nose: false,
+      back: mirror('<path d="M350 352 L344 316 L378 336 Z" fill="#F29AAB"/>'),
+      front: '<ellipse cx="400" cy="398" rx="16" ry="11" fill="#F48FA2"/><ellipse cx="394" cy="398" rx="2.5" ry="3.5" fill="#C0627A"/><ellipse cx="406" cy="398" rx="2.5" ry="3.5" fill="#C0627A"/>' },
+    koala: { emoji: '🐨', name: '졸린 코알라', desc: '유칼립투스 잎을 든 코알라', fur: '#A9B2BC', paw: '#8E98A3', nose: false,
+      back: mirror('<circle cx="342" cy="350" r="25" fill="#A9B2BC"/><circle cx="342" cy="350" r="14" fill="#F3D6DC"/>'),
+      front: `<ellipse cx="400" cy="396" rx="10" ry="13" fill="#3A3A3A"/>
+        <path d="M452 446 Q470 410 494 404 Q486 430 452 446 Z" fill="#7FB98E"/><path d="M452 446 Q472 424 492 406" stroke="#5E9A6E" stroke-width="2" fill="none"/>` },
+    sheep: { emoji: '🐑', name: '몽글몽글 양', desc: '구름 같은 털뭉치', fur: '#FFFDF7', paw: '#7A6458',
+      under: mirror('<circle cx="356" cy="420" r="18" fill="#FFFFFF" stroke="#EEE6DA" stroke-width="2"/><circle cx="372" cy="446" r="16" fill="#FFFFFF" stroke="#EEE6DA" stroke-width="2"/>'),
+      back: `${mirror('<circle cx="346" cy="352" r="17" fill="#FFFFFF" stroke="#EEE6DA" stroke-width="2"/><circle cx="364" cy="334" r="17" fill="#FFFFFF" stroke="#EEE6DA" stroke-width="2"/><circle cx="388" cy="326" r="17" fill="#FFFFFF" stroke="#EEE6DA" stroke-width="2"/><ellipse cx="334" cy="386" rx="14" ry="7" fill="#E8D8C8"/>')}`,
+      front: '<circle cx="390" cy="336" r="9" fill="#FFFFFF" stroke="#EEE6DA" stroke-width="2"/><circle cx="406" cy="334" r="10" fill="#FFFFFF" stroke="#EEE6DA" stroke-width="2"/>' },
+    dino: { emoji: '🦖', name: '으르렁 공룡', desc: '작은 팔로 크게 으르렁', fur: '#7FC99A', paw: '#6AB585',
+      under: '<path d="M444 450 Q514 460 526 418 Q498 440 452 432 Z" fill="#7FC99A"/>',
+      back: '<path d="M372 340 L382 312 L394 334 Z M392 332 L402 302 L414 330 Z M412 334 L424 310 L432 340 Z" fill="#F5B041"/>',
+      face: '<circle cx="392" cy="398" r="2" fill="#5A9A70"/><circle cx="408" cy="398" r="2" fill="#5A9A70"/>',
+      front: mirror('<path d="M362 424 Q350 420 348 410" stroke="#7FC99A" stroke-width="8" fill="none" stroke-linecap="round"/>') },
   };
   function applyCharacter() {
-    const id = CHARACTERS[DB.character] ? DB.character : 'pudding', c = CHARACTERS[id], bear = id === 'bear';
-    document.querySelectorAll('.pudding .ch-fur').forEach(el => el.setAttribute('fill', c.fur));
-    document.querySelectorAll('.pudding .ch-paw').forEach(el => el.setAttribute('fill', c.paw));
-    ['bearEars', 'bearFace', 'bearArms'].forEach(x => { document.getElementById(x).style.display = bear ? '' : 'none'; });
-    ['dogEars', 'dogLeaf'].forEach(x => { document.getElementById(x).style.display = bear ? 'none' : ''; });
+    const id = CHARACTERS[DB.character] ? DB.character : 'pudding', c = CHARACTERS[id];
+    const q$ = s => document.querySelectorAll('.pudding ' + s);
+    q$('.ch-fur').forEach(el => el.setAttribute('fill', c.fur));
+    q$('.ch-paw').forEach(el => el.setAttribute('fill', c.paw));
+    q$('.ch-eye').forEach(el => { el.style.display = c.eye === 'none' ? 'none' : ''; el.setAttribute('stroke', c.eye && c.eye !== 'none' ? c.eye : '#4A3B2C'); });
+    q$('.ch-nose').forEach(el => { el.style.display = c.nose === false ? 'none' : ''; });
+    ['dogEars', 'dogLeaf'].forEach(x => { document.getElementById(x).style.display = c.dog ? '' : 'none'; });
+    ['under', 'back', 'face', 'front'].forEach(k => {
+      document.getElementById('ch' + k[0].toUpperCase() + k.slice(1)).innerHTML = c[k] || ''; // 그림은 위의 목록에서만 와요
+    });
     document.querySelector('.pudding').setAttribute('aria-label', `${c.name}에게 말 걸기`);
   }
   function setCharacter(id) {
@@ -2335,10 +2400,10 @@
       <div class="sec">
         <h3>🐾 내 캐릭터</h3>
         <div class="memo">거실에 사는 친구를 골라요. 놀러 온 이웃과 마을 로비에도 이 캐릭터로 보여요.</div>
-        <div class="chips" style="margin-top:8px">
+        <div class="ch-grid">
           ${Object.entries(CHARACTERS).map(([id, c]) => `
-            <button class="btn ${DB.character === id ? 'primary' : ''}" type="button" onclick="setCharacter('${id}')" aria-pressed="${DB.character === id}">
-              ${c.emoji} ${c.name} <span class="memo">${c.desc}</span>${DB.character === id ? ' ✔' : ''}</button>`).join('')}
+            <button class="btn ch-pick ${DB.character === id ? 'primary' : ''}" type="button" onclick="setCharacter('${id}')" aria-pressed="${DB.character === id}">
+              <span class="ch-emoji">${c.emoji}</span><b>${c.name}${DB.character === id ? ' ✔' : ''}</b><span class="memo">${c.desc}</span></button>`).join('')}
         </div>
       </div>
       <div class="memo" style="margin-top:12px">💡 예전에 이 컴퓨터에서 쓰던 푸딩이네 기록은, 그 앱의 ⚙️에서 내보낸 백업 파일을 아래 '가져오기'로 옮기면 돼요.</div>
@@ -2959,11 +3024,8 @@
             <circle cx="6" cy="-16" r="2" fill="#FFE07A"/>
             <text x="28" y="-9" text-anchor="middle" font-size="11" font-weight="800" fill="#9A7C72">Lv.${pub.lv}</text>
             ${mine ? `<text x="0" y="-114" text-anchor="middle" font-size="16">💗</text>` : ''}
-            ${pub.ch === 'bear' ? `<g transform="translate(-28 -14)" aria-hidden="true">
-              <circle cx="-7" cy="-8" r="5" fill="#9C6A42"/><circle cx="7" cy="-8" r="5" fill="#9C6A42"/>
-              <circle r="10" fill="#B07A4F"/><ellipse cy="3" rx="5" ry="4" fill="#E8C9A6"/>
-              <rect x="-10" y="-7" width="20" height="3.5" rx="1.5" fill="#E0484F"/>
-              <circle cx="-3.5" cy="-1" r="1.3" fill="#4A3B2C"/><circle cx="3.5" cy="-1" r="1.3" fill="#4A3B2C"/></g>` : ''}
+            <g transform="translate(-28 -15)" aria-hidden="true"><circle r="12" fill="#fff" stroke="#E8D5C0" stroke-width="1.5"/>
+              <text y="5" text-anchor="middle" font-size="14">${CHARACTERS[pub.ch].emoji}</text></g>
             ${pub.trip ? `<text x="50" y="-82" font-size="18" text-anchor="middle">✈️</text>` : ''}
             ${busy ? `<g transform="translate(-46 -90)"><circle r="12" fill="#E0607E" stroke="#fff" stroke-width="2"/><text y="4.5" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${busy}</text></g>` : ''}
           </g>

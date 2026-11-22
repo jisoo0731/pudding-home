@@ -840,17 +840,30 @@
       <g class="pudding hot" onclick="sayRandom()" role="button" aria-label="푸딩에게 말 걸기">
         <ellipse cx="400" cy="466" rx="58" ry="10" fill="#000" opacity=".08"/>
         <!-- 몸통 -->
-        <ellipse cx="400" cy="434" rx="52" ry="34" fill="#FBE29A"/>
+        <ellipse class="ch-fur" cx="400" cy="434" rx="52" ry="34" fill="#FBE29A"/>
         <!-- 발 -->
-        <ellipse cx="372" cy="462" rx="14" ry="8" fill="#F7D57D"/>
-        <ellipse cx="428" cy="462" rx="14" ry="8" fill="#F7D57D"/>
+        <ellipse class="ch-paw" cx="372" cy="462" rx="14" ry="8" fill="#F7D57D"/>
+        <ellipse class="ch-paw" cx="428" cy="462" rx="14" ry="8" fill="#F7D57D"/>
+        <!-- 💪 근육 곰: 동그란 귀 (머리 뒤) -->
+        <g id="bearEars" style="display:none">
+          <circle cx="350" cy="342" r="20" fill="#9C6A42"/><circle cx="350" cy="342" r="10" fill="#E8C9A6"/>
+          <circle cx="450" cy="342" r="20" fill="#9C6A42"/><circle cx="450" cy="342" r="10" fill="#E8C9A6"/>
+        </g>
         <!-- 머리 -->
-        <ellipse cx="400" cy="380" rx="62" ry="50" fill="#FBE29A"/>
-        <!-- 늘어진 귀 -->
-        <path d="M344 360 Q326 372 330 404 Q336 420 350 410 Q356 386 360 364 Z" fill="#9A6A3C"/>
-        <path d="M456 360 Q474 372 470 404 Q464 420 450 410 Q444 386 440 364 Z" fill="#9A6A3C"/>
-        <!-- 머리 위 작은 잎사귀 -->
-        <path d="M400 332 Q392 314 404 306 Q412 320 400 332 Z" fill="#8CCB7E"/>
+        <ellipse class="ch-fur" cx="400" cy="380" rx="62" ry="50" fill="#FBE29A"/>
+        <!-- 늘어진 귀 (푸딩) -->
+        <g id="dogEars">
+          <path d="M344 360 Q326 372 330 404 Q336 420 350 410 Q356 386 360 364 Z" fill="#9A6A3C"/>
+          <path d="M456 360 Q474 372 470 404 Q464 420 450 410 Q444 386 440 364 Z" fill="#9A6A3C"/>
+        </g>
+        <!-- 머리 위 작은 잎사귀 (푸딩) -->
+        <path id="dogLeaf" d="M400 332 Q392 314 404 306 Q412 320 400 332 Z" fill="#8CCB7E"/>
+        <!-- 💪 근육 곰: 주둥이 · 빨간 머리띠 -->
+        <g id="bearFace" style="display:none">
+          <ellipse cx="400" cy="398" rx="22" ry="16" fill="#E8C9A6"/>
+          <path d="M340 352 Q400 330 460 352 L458 364 Q400 344 342 364 Z" fill="#E0484F"/>
+          <path d="M458 356 L478 348 L474 362 Z M458 360 L476 370 L466 374 Z" fill="#E0484F"/>
+        </g>
         <!-- 졸린 눈 -->
         <path d="M378 384 Q384 390 390 384" stroke="#4A3B2C" stroke-width="3.5" fill="none" stroke-linecap="round"/>
         <path d="M410 384 Q416 390 422 384" stroke="#4A3B2C" stroke-width="3.5" fill="none" stroke-linecap="round"/>
@@ -863,6 +876,21 @@
         <!-- 목에 두른 민트 스카프 -->
         <path id="scarf1" d="M356 416 Q400 432 444 416 L442 426 Q400 442 358 426 Z" fill="#7CC9B5"/>
         <path id="scarf2" d="M424 424 L436 446 L420 444 Z" fill="#6AB8A4"/>
+        <!-- 💪 근육 곰: 알통 팔 · 아령 · 땀방울 -->
+        <g id="bearArms" style="display:none">
+          <path d="M358 420 Q322 414 324 380" stroke="#B07A4F" stroke-width="18" fill="none" stroke-linecap="round"/>
+          <ellipse cx="332" cy="402" rx="13" ry="11" fill="#B07A4F"/>
+          <path d="M326 398 Q332 392 338 398" stroke="#8E5D38" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <circle cx="324" cy="374" r="11" fill="#9C6A42"/>
+          <path d="M442 420 Q478 414 476 380" stroke="#B07A4F" stroke-width="18" fill="none" stroke-linecap="round"/>
+          <ellipse cx="468" cy="402" rx="13" ry="11" fill="#B07A4F"/>
+          <path d="M462 398 Q468 392 474 398" stroke="#8E5D38" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <rect x="456" y="370" width="40" height="7" rx="3" fill="#7A7A7A"/>
+          <rect x="450" y="358" width="10" height="30" rx="3" fill="#4A4A4A"/>
+          <rect x="492" y="358" width="10" height="30" rx="3" fill="#4A4A4A"/>
+          <circle cx="476" cy="374" r="11" fill="#9C6A42"/>
+          <path d="M480 330 Q486 342 480 346 Q474 342 480 330 Z" fill="#8FD3F5"/>
+        </g>
         <!-- 🍮 푸딩 꾸미기 (푸딩과 같이 움직여요) -->
         <g id="f-ribbon" style="display:none">
           <path d="M344 352 L330 340 L332 364 Z" fill="#F27A9B"/>
@@ -1060,7 +1088,8 @@
     }
     const db = { ...base, schedules: list('schedules', validSchedule), tasks, projects, workNotes, money: list('money', validMoney), budgets,
       trips: list('trips', validTrip).map(normalizeTrip), packList: normalizePackList(base.packList),
-      lastBackup: typeof base.lastBackup === 'string' && DATE_RE.test(base.lastBackup) ? base.lastBackup : '' };
+      lastBackup: typeof base.lastBackup === 'string' && DATE_RE.test(base.lastBackup) ? base.lastBackup : '',
+      character: CHARACTERS[base.character] ? base.character : 'pudding' };
     const x = base.xp;
     const okXP = !!x && Number.isInteger(x.total) && x.total >= 0 && x.total <= 10000000
       && Number.isInteger(x.spent) && x.spent >= 0 && x.spent <= x.total;
@@ -1098,6 +1127,27 @@
     { id: 'crown', place: 'pudding', slot: 'head', emoji: '👑', name: '왕관', price: 300, lv: 7, desc: '열심히 기록한 푸딩에게 왕관을!' },
   ];
   const SHOP_TABS = [['all', '전체'], ['window', '🪟 창문'], ['desk', '📝 책상'], ['wall', '🖼️ 벽'], ['floor', '🛋️ 바닥'], ['pudding', '🍮 푸딩']];
+
+  // ---- 캐릭터: 집주인이 ⚙️에서 골라요. 놀러 온 이웃과 마을에도 같이 보여요 ----
+  const CHARACTERS = {
+    pudding: { emoji: '🐶', name: '푸딩', desc: '졸린 눈 크림색 강아지', fur: '#FBE29A', paw: '#F7D57D' },
+    bear: { emoji: '💪', name: '근육 곰', desc: '머리띠 두르고 아령 드는 갈색 곰', fur: '#B07A4F', paw: '#9C6A42' },
+  };
+  function applyCharacter() {
+    const id = CHARACTERS[DB.character] ? DB.character : 'pudding', c = CHARACTERS[id], bear = id === 'bear';
+    document.querySelectorAll('.pudding .ch-fur').forEach(el => el.setAttribute('fill', c.fur));
+    document.querySelectorAll('.pudding .ch-paw').forEach(el => el.setAttribute('fill', c.paw));
+    ['bearEars', 'bearFace', 'bearArms'].forEach(x => { document.getElementById(x).style.display = bear ? '' : 'none'; });
+    ['dogEars', 'dogLeaf'].forEach(x => { document.getElementById(x).style.display = bear ? 'none' : ''; });
+    document.querySelector('.pudding').setAttribute('aria-label', `${c.name}에게 말 걸기`);
+  }
+  function setCharacter(id) {
+    if (VISIT || !CHARACTERS[id] || DB.character === id) return;
+    DB.character = id;
+    if (saveDB()) toast(`${CHARACTERS[id].emoji} ${CHARACTERS[id].name}(으)로 바꿨어요. 이웃에게도 이렇게 보여요`);
+    refreshLiving();
+    renderBackup();
+  }
 
   // ---- XP 규칙 ----
   const XP = { schedule: 10, task: 5, taskDone: 15, money: 10, trip: 20, plan: 10, cost: 5 };
@@ -2282,6 +2332,15 @@
         <button class="btn bk-btn" type="button" onclick="logout()">🚪 나가기 (로그아웃)</button>
         <div class="memo">여러 사람이 같이 쓰는 컴퓨터라면 다 쓰고 꼭 나가기를 눌러 주세요.</div>
       </div>
+      <div class="sec">
+        <h3>🐾 내 캐릭터</h3>
+        <div class="memo">거실에 사는 친구를 골라요. 놀러 온 이웃과 마을 로비에도 이 캐릭터로 보여요.</div>
+        <div class="chips" style="margin-top:8px">
+          ${Object.entries(CHARACTERS).map(([id, c]) => `
+            <button class="btn ${DB.character === id ? 'primary' : ''}" type="button" onclick="setCharacter('${id}')" aria-pressed="${DB.character === id}">
+              ${c.emoji} ${c.name} <span class="memo">${c.desc}</span>${DB.character === id ? ' ✔' : ''}</button>`).join('')}
+        </div>
+      </div>
       <div class="memo" style="margin-top:12px">💡 예전에 이 컴퓨터에서 쓰던 푸딩이네 기록은, 그 앱의 ⚙️에서 내보낸 백업 파일을 아래 '가져오기'로 옮기면 돼요.</div>
 
       <div class="backup-box">
@@ -2510,6 +2569,7 @@
   function refreshLiving() {
     refreshHUD();
     applyFurniture();
+    applyCharacter();
     const n = schedulesOn(ymd(new Date())).length;
     document.getElementById('todaySched').textContent = n + '개';
     document.getElementById('calBadge').style.display = n ? '' : 'none';
@@ -2673,7 +2733,7 @@
       const n = Math.round((parseYmd(trip.start) - parseYmd(today)) / 86400000);
       if (n <= 60) tr = { s: 'soon', d: n };
     }
-    return { lv: levelInfo(db.xp.total).lv, furn: db.furniture.placed.slice(0, 40), busy, trip: tr };
+    return { lv: levelInfo(db.xp.total).lv, furn: db.furniture.placed.slice(0, 40), busy, trip: tr, ch: db.character };
   }
   // 문패는 다른 사람이 쓴 것이라 하나씩 검사해서 써요
   function readPublic(p) {
@@ -2684,7 +2744,8 @@
       && typeof b.t === 'string' && (b.t === '' || TIME_RE.test(b.t))).slice(0, 200) : [];
     const furn = Array.isArray(pd.furn) ? pd.furn.filter(id => FURNITURE.some(it => it.id === id)) : [];
     const tr = pd.trip && (pd.trip.s === 'now' || (pd.trip.s === 'soon' && Number.isInteger(pd.trip.d) && pd.trip.d >= 0 && pd.trip.d <= 60)) ? pd.trip : null;
-    return { lv, busy, furn, trip: tr };
+    const ch = CHARACTERS[pd.ch] ? pd.ch : 'pudding';
+    return { lv, busy, furn, trip: tr, ch };
   }
   const tripText = tr => !tr ? '' : tr.s === 'now' ? '✈️ 여행 중' : tr.d === 0 ? '✈️ 오늘 여행 출발' : `✈️ D-${tr.d} 여행 예정`;
   function xpForLevel(lv) { let t = 0; for (let i = 1; i < lv; i++) t += 50 + (i - 1) * 25; return t; }
@@ -2696,6 +2757,7 @@
       schedules: pub.busy.map((b, i) => ({ id: 'b' + i, date: b.d, time: b.t, title: '일정 있음', memo: '' })),
       xp: { total: xpForLevel(pub.lv), spent: 0 },
       furniture: { owned: pub.furn, placed: pub.furn },
+      character: pub.ch,
     });
   }
   function applyVisitView() {
@@ -2897,6 +2959,11 @@
             <circle cx="6" cy="-16" r="2" fill="#FFE07A"/>
             <text x="28" y="-9" text-anchor="middle" font-size="11" font-weight="800" fill="#9A7C72">Lv.${pub.lv}</text>
             ${mine ? `<text x="0" y="-114" text-anchor="middle" font-size="16">💗</text>` : ''}
+            ${pub.ch === 'bear' ? `<g transform="translate(-28 -14)" aria-hidden="true">
+              <circle cx="-7" cy="-8" r="5" fill="#9C6A42"/><circle cx="7" cy="-8" r="5" fill="#9C6A42"/>
+              <circle r="10" fill="#B07A4F"/><ellipse cy="3" rx="5" ry="4" fill="#E8C9A6"/>
+              <rect x="-10" y="-7" width="20" height="3.5" rx="1.5" fill="#E0484F"/>
+              <circle cx="-3.5" cy="-1" r="1.3" fill="#4A3B2C"/><circle cx="3.5" cy="-1" r="1.3" fill="#4A3B2C"/></g>` : ''}
             ${pub.trip ? `<text x="50" y="-82" font-size="18" text-anchor="middle">✈️</text>` : ''}
             ${busy ? `<g transform="translate(-46 -90)"><circle r="12" fill="#E0607E" stroke="#fff" stroke-width="2"/><text y="4.5" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${busy}</text></g>` : ''}
           </g>

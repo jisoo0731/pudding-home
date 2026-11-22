@@ -505,6 +505,20 @@
   .house .st { font-size: 13px; color: var(--ink-soft); }
   .house .btn { margin-top: 4px; }
 
+  /* 방명록 */
+  .guestbook { margin-top: 12px; background: var(--card); border: 2px solid var(--line); border-radius: 18px; padding: 14px 16px; }
+  .guestbook[hidden] { display: none; }
+  .guestbook h3 { margin: 0 0 8px; font-size: 16px; display: flex; justify-content: space-between; align-items: baseline; }
+  .gb-form { display: flex; gap: 8px; }
+  .gb-form textarea { flex: 1; min-width: 0; resize: vertical; min-height: 44px; font: inherit; font-size: 14px; padding: 8px 10px; border: 2px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); }
+  .gb-list { margin-top: 10px; display: grid; gap: 8px; }
+  .gb-item { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 8px 12px; }
+  .gb-item .who { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-soft); }
+  .gb-item .who b { color: var(--ink); }
+  .gb-item .msg { margin-top: 3px; font-size: 14px; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }
+  .gb-item .del { border: 0; background: none; cursor: pointer; font-size: 13px; color: var(--ink-soft); padding: 0 2px; }
+  .gb-item .del:hover { color: #C0392B; }
+
   /* 업무 링크 */
   .link-form { display: flex; gap: 8px; margin-top: 8px; }
   .link-form input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px 10px; border: 2px solid var(--line); background: #fff; color: var(--ink); }
@@ -937,6 +951,9 @@
 
   <!-- 오늘판: 방에 들어가지 않아도 오늘 할 것이 목록으로 보여요 -->
   <div class="board" id="todayBoard"></div>
+
+  <!-- 📖 방명록: 같은 동네 사람이 한마디씩 남겨요 -->
+  <div class="guestbook" id="guestbook" hidden></div>
 </div>
 
 <div class="panel-bg" id="panelBg" onclick="if (event.target === this) closePanel()">
@@ -3109,6 +3126,61 @@
     </svg>`;
   }
 
+  // ---- 📖 방명록 ----
+  let GB_HOST = null, GB_ROWS = [];
+  const gbTime = iso => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  async function loadGuestbook() {
+    const box = document.getElementById('guestbook');
+    if (!ME || !SB) { box.hidden = true; return; }
+    const host = VISIT ? VISIT.user_id : ME.id;
+    GB_HOST = host;
+    box.hidden = false;
+    if (!GB_ROWS.length || GB_ROWS[0].host_id !== host) { GB_ROWS = []; renderGuestbook('불러오는 중…'); }
+    const { data, error } = await SB.from('guestbook').select('id, host_id, author_id, author_name, message, created_at')
+      .eq('host_id', host).order('created_at', { ascending: false }).limit(30);
+    if (GB_HOST !== host) return; // 그사이 다른 집으로 옮겼으면 버려요
+    if (error) { renderGuestbook(friendly(error)); return; }
+    GB_ROWS = data || [];
+    renderGuestbook();
+  }
+  function renderGuestbook(note) {
+    const host = GB_HOST, owner = host === ME.id;
+    const name = owner ? (MY_PROFILE ? MY_PROFILE.name : '') : VISIT ? VISIT.name : '';
+    document.getElementById('guestbook').innerHTML = `
+      <h3><span>📖 ${esc(homeOf(name))} 방명록</span><span class="memo">${GB_ROWS.length ? GB_ROWS.length + '개' : ''}</span></h3>
+      <form class="gb-form" onsubmit="writeGuestbook(event)" autocomplete="off">
+        <textarea name="msg" maxlength="200" rows="2" placeholder="${owner ? '내 집 방명록에 한마디 (이웃에게도 보여요)' : esc(homeOf(name)) + '에 한마디 남겨요 (200자까지)'}" aria-label="방명록 남기기" required></textarea>
+        <button class="btn primary" type="submit">남기기</button>
+      </form>
+      <div class="gb-list">
+        ${note ? `<div class="memo">${esc(note)}</div>` : GB_ROWS.map(r => `
+          <div class="gb-item">
+            <div class="who"><span><b>${esc(r.author_name || '이웃')}</b>${r.author_id === ME.id ? ' (나)' : ''} · ${gbTime(r.created_at)}</span>
+              ${r.author_id === ME.id || owner ? `<button class="del" type="button" title="지우기" onclick="deleteGuestbook('${r.id}')">🗑️</button>` : ''}</div>
+            <div class="msg">${esc(r.message)}</div>
+          </div>`).join('') || `<div class="memo">${owner ? '아직 남긴 글이 없어요. 이웃이 놀러 오면 여기에 한마디 남겨요.' : '첫 번째로 한마디 남겨 보세요 🍮'}</div>`}
+      </div>`;
+  }
+  async function writeGuestbook(e) {
+    e.preventDefault();
+    const box = e.target.elements.msg, msg = box.value.trim().slice(0, 200);
+    if (!msg || !GB_HOST) return;
+    const btn = e.target.querySelector('button'); btn.disabled = true;
+    const { error } = await SB.from('guestbook').insert({ host_id: GB_HOST, message: msg }); // 이름 · 시각은 저장소가 채워요
+    btn.disabled = false;
+    if (error) { toast(friendly(error)); return; }
+    box.value = '';
+    toast('📖 방명록에 남겼어요');
+    loadGuestbook();
+  }
+  async function deleteGuestbook(id) {
+    if (!(await askConfirm('이 방명록 글을 지울까요?', '지우기'))) return;
+    const { error } = await SB.from('guestbook').delete().eq('id', id);
+    if (error) { toast(friendly(error)); return; }
+    GB_ROWS = GB_ROWS.filter(r => r.id !== id);
+    renderGuestbook();
+  }
+
   async function goLobby() { await flushSave(); showLobby(); }
   async function showLobby() {
     showGate(`<div class="gate-box wide"><h1>🏘️ ${esc(HOOD_NAME)}</h1><div class="sub">집들을 불러오는 중…</div></div>`);
@@ -3155,6 +3227,7 @@
       <button class="btn" type="button" onclick="goLobby()">🏘️ 로비</button></span>` : '';
     hideGate();
     refreshLiving();
+    loadGuestbook();
     const hello = VISIT ? VISIT_LINES()[0] : todayLine() || '어서 와! 오늘은 뭘 적어 볼까?';
     document.getElementById('bubbleText').textContent = hello.length > 19 ? hello.slice(0, 18) + '…' : hello;
   }
@@ -3164,6 +3237,8 @@
     await SB.auth.signOut();
     ME = MY_PROFILE = VISIT = HOME = null;
     DB = normalize({});
+    GB_ROWS = []; GB_HOST = null;
+    document.getElementById('guestbook').hidden = true;
     document.getElementById('visitBar').hidden = true;
     refreshLiving();
     showAuth('login');

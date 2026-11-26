@@ -1809,14 +1809,14 @@
 
   function openMoney() {
     const now = new Date();
-    Object.assign(money, { y: now.getFullYear(), m: now.getMonth(), editId: null, copyOpen: false });
+    Object.assign(money, { y: now.getFullYear(), m: now.getMonth(), editId: null, copyOpen: false, copyFrom: null });
     renderMoney();
     document.getElementById('panel').classList.add('square');
     document.getElementById('panelBg').classList.add('open');
   }
   function moveMoneyMonth(step) {
     const d = new Date(money.y, money.m + step, 1);
-    Object.assign(money, { y: d.getFullYear(), m: d.getMonth(), editId: null, copyOpen: false });
+    Object.assign(money, { y: d.getFullYear(), m: d.getMonth(), editId: null, copyOpen: false, copyFrom: null });
     renderMoney();
   }
 
@@ -1828,7 +1828,30 @@
   }
   // 이번 달에 같은 분류 · 같은 메모의 고정비가 이미 있으면 두 번 넣지 않아요
   const fixedExists = x => DB.money.some(y => y.type === 'fixed' && y.date.slice(0, 7) === monthKey() && y.cat === x.cat && y.memo === x.memo);
-  function toggleCopy() { money.copyOpen = !money.copyOpen; renderMoney(); }
+  function toggleCopy() { money.copyOpen = !money.copyOpen; money.copyFrom = null; renderMoney(); }
+
+  // ---- 고정비: 백업 파일에서 고정비만 골라 가져오기 (지금 기록은 그대로 두고 더하기만 해요) ----
+  async function pickFixedBackup(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file || VISIT) return;
+    if (file.size > 5 * 1024 * 1024) { toast('파일이 너무 커요. 이 앱의 백업 파일이 맞는지 확인해 주세요'); return; }
+    let parsed;
+    try { parsed = JSON.parse(await file.text()); }
+    catch (e) { toast('파일을 읽을 수 없어요. 이 앱에서 내보낸 백업 파일을 골라 주세요'); return; }
+    const raw = parsed && parsed.app === BACKUP_APP && parsed.data ? parsed.data : null;
+    if (!raw || typeof raw !== 'object') { toast('나만의 집 백업 파일이 아니에요'); return; }
+    // 같은 분류 · 같은 이름은 가장 최근 것 하나만
+    const byName = new Map();
+    normalize(raw).money.filter(x => x.type === 'fixed' && x.cat !== FREE_SAVING)
+      .sort((a, b) => a.date.localeCompare(b.date)).forEach(x => byName.set(x.cat + '|' + x.memo, x));
+    const items = [...byName.values()].sort((a, b) => a.date.slice(8).localeCompare(b.date.slice(8)));
+    if (!items.length) { toast('이 백업 파일에는 고정비가 없어요'); return; }
+    const when = typeof parsed.exportedAt === 'string' && DATE_RE.test(parsed.exportedAt.slice(0, 10)) ? shortDate(parsed.exportedAt.slice(0, 10)) : '백업 파일';
+    money.copyFrom = { label: when, items };
+    money.copyOpen = true;
+    renderMoney();
+  }
 
   // 고정비 접기 · 펼치기 (마지막 상태를 이 브라우저에 기억해요)
   const FOLD_KEY = 'my-home:fixed-open';
@@ -1839,8 +1862,9 @@
     try { localStorage.setItem(FOLD_KEY, isFixedOpen() ? '0' : '1'); } catch (e) {}
     renderMoney();
   }
+  const copyItems = () => money.copyFrom ? money.copyFrom.items : prevFixed();
   function copyBox() {
-    const items = prevFixed();
+    const items = copyItems();
     const rows = items.map(x => {
       const has = fixedExists(x);
       return `
@@ -1856,8 +1880,10 @@
     }).join('');
     return `
       <div class="copy-box">
-        <div class="copy-head"><b>📋 ${new Date(money.y, money.m - 1, 1).getMonth() + 1}월 고정비 가져오기</b>
-          <span class="memo">가져올 것만 체크하고, 금액이 바뀌었으면 고쳐 주세요</span></div>
+        <div class="copy-head"><b>${money.copyFrom
+            ? `📂 ${esc(money.copyFrom.label)} 백업의 고정비 → ${money.m + 1}월에 넣기`
+            : `📋 ${new Date(money.y, money.m - 1, 1).getMonth() + 1}월 고정비 가져오기`}</b>
+          <span class="memo">가져올 것만 체크하고, 금액이 바뀌었으면 고쳐 주세요${money.copyFrom ? ' · 지금 기록은 그대로 두고 더하기만 해요' : ''}</span></div>
         ${rows}
         <div class="dlg-actions">
           <button class="btn" type="button" onclick="toggleCopy()">취소</button>
@@ -1868,10 +1894,11 @@
   function importFixed() {
     const lastDay = new Date(money.y, money.m + 1, 0).getDate();
     let count = 0, bad = 0;
+    const list = copyItems();
     document.querySelectorAll('.copy-row').forEach(row => {
       const cb = row.querySelector('input[type=checkbox]');
       if (!cb.checked) return;
-      const src = DB.money.find(x => x.id === cb.dataset.id);
+      const src = list.find(x => x.id === cb.dataset.id);
       const amount = parseAmount(row.querySelector('.copy-amt').value);
       if (!src || !amount || amount > MAX_WON) { bad++; return; }
       // 지난달과 같은 날로 넣어요 (31일처럼 이번 달에 없는 날은 말일로)
@@ -1882,6 +1909,7 @@
     if (!count) { toast(bad ? '금액을 숫자로 적어 주세요' : '가져올 항목을 체크해 주세요'); return; }
     gainXP(XP.money * count);
     money.copyOpen = false;
+    money.copyFrom = null;
     if (saveDB()) toast(`고정비 ${count}개를 가져왔어요 📋`);
     renderMoney();
     refreshLiving();
@@ -1933,7 +1961,7 @@
 
     // 돈 흐름: 들어온 돈 − 고정비 − 용돈 − 자유적금 = 남은 돈
     const hasPrevFixed = prevFixed().length > 0;
-    if (!hasPrevFixed) money.copyOpen = false;
+    if (!hasPrevFixed && !money.copyFrom) money.copyOpen = false;
     const fixedItems = DB.money.filter(x => x.type === 'fixed' && x.cat !== FREE_SAVING && x.date.slice(0, 7) === key)
       .sort((a, b) => a.date.localeCompare(b.date));
     const fixedOpen = isFixedOpen();
@@ -1947,6 +1975,8 @@
             <button class="icon-btn" type="button" title="고치기" onclick="startMoneyEdit('${x.id}')">✏️</button>
           </div>`).join('') || `<div class="empty">이번 달 고정비가 아직 없어요.</div>`}
         ${hasPrevFixed && !money.copyOpen ? `<button class="btn mini" type="button" onclick="toggleCopy()">📋 지난달 고정비 가져오기</button>` : ''}
+        ${!money.copyOpen ? `<input type="file" id="fixedBackupFile" accept=".json,application/json" hidden onchange="pickFixedBackup(this)">
+          <button class="btn mini" type="button" onclick="document.getElementById('fixedBackupFile').click()">📂 백업 파일에서 고정비 가져오기</button>` : ''}
       </div>`;
     const allowanceNote = !t.allowance ? '쓴 돈' : t.outSum > t.allowance ? '정한 것보다 더 썼어요' : '정해 둔 돈';
     const flow = `

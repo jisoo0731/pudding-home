@@ -379,7 +379,7 @@
   .idx.down { background: #E3F4EA; color: #2E8B57; }
   .idx.new { background: #EEF0FF; color: #5865C9; }
 
-  /* 내역: 고치기 · 지우기는 마우스를 올릴 때만 */
+  /* 내역: 고치기 · 지우기 (늘 보이게) */
   .day-head {
     display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--ink-soft);
     margin-top: 14px; padding: 0 2px 4px; border-bottom: 2px solid var(--line);
@@ -390,7 +390,7 @@
   .mrow .body { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
   .mrow .cat { font-size: 12px; color: var(--ink-soft); margin-left: 6px; }
   .mrow .amt { font-weight: 800; white-space: nowrap; font-size: 15px; }
-  .mrow .acts { display: flex; opacity: 0; transition: opacity .15s; }
+  .mrow .acts { display: flex; opacity: .55; transition: opacity .15s; } /* 고치기 · 지우기는 늘 보이고, 마우스를 올리면 진해져요 */
   .mrow:hover .acts, .mrow:focus-within .acts { opacity: 1; }
   @media (hover: none) { .mrow .acts { opacity: 1; } }
   @media (max-width: 640px) {
@@ -1926,6 +1926,16 @@
     if (!CATS[type].some(c => c[0] === money.cat)) money.cat = CATS[type][0][0];
     document.getElementById('catPicks').innerHTML = catPicks();
   }
+  // 정해 둔 용돈 지우기: 이 달부터 '용돈 없이'로 바꿔요 (쓴 내역은 그대로)
+  async function removeAllowance() {
+    const key = monthKey(), cur = allowanceFor(key);
+    if (!cur || VISIT) return;
+    if (!(await askConfirm(`${money.m + 1}월에 정해 둔 용돈 ${won(cur)}을 지울까요?\n쓴 내역은 그대로 남아요.`, '지우기'))) return;
+    DB.budgets[key] = 0;
+    if (saveDB()) toast(`${money.m + 1}월 용돈을 지웠어요. 다시 정하려면 ✏️를 눌러요`);
+    renderMoney();
+    refreshLiving();
+  }
   async function setAllowance() {
     const key = monthKey();
     const cur = allowanceFor(key);
@@ -1988,7 +1998,10 @@
           <b class="fixed">-${won(t.fixedSum)}</b>
         </button>
         ${fixedOpen ? fixedDetail : ''}
-        <div class="line"><span>👛 용돈 <span class="memo">${allowanceNote}</span></span><b class="minus">-${won(t.allowanceUsed)}</b></div>
+        <div class="line"><span>👛 용돈 <span class="memo">${allowanceNote}</span></span>
+          <span class="right"><b class="minus">-${won(t.allowanceUsed)}</b>
+            <button class="icon-btn" type="button" title="${t.allowance ? '용돈 고치기' : '용돈 정하기'}" onclick="setAllowance()">✏️</button>
+            ${t.allowance ? `<button class="icon-btn" type="button" title="정해 둔 용돈 지우기" onclick="removeAllowance()">🗑️</button>` : ''}</span></div>
         ${t.saved ? `<div class="line"><span>💖 자유적금</span><b class="fixed">-${won(t.saved)}</b></div>` : ''}
         <div class="line total">
           <span>🐷 남은 돈</span>

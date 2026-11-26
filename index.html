@@ -1973,6 +1973,7 @@
             <span class="body">${esc(x.memo || x.cat)}<span class="cat">${esc(x.cat)} · 매달 ${+x.date.slice(8)}일</span></span>
             <b class="fixed">${won(x.amount)}</b>
             <button class="icon-btn" type="button" title="고치기" onclick="startMoneyEdit('${x.id}')">✏️</button>
+            <button class="icon-btn" type="button" title="지우기" onclick="removeMoney('${x.id}')">🗑️</button>
           </div>`).join('') || `<div class="empty">이번 달 고정비가 아직 없어요.</div>`}
         ${hasPrevFixed && !money.copyOpen ? `<button class="btn mini" type="button" onclick="toggleCopy()">📋 지난달 고정비 가져오기</button>` : ''}
         ${!money.copyOpen ? `<input type="file" id="fixedBackupFile" accept=".json,application/json" hidden onchange="pickFixedBackup(this)">
